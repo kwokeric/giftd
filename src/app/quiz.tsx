@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useSyncExternalStore } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import type { ReactNode } from "react";
 import { copy } from "@/lib/copy";
 import { OCCASION_OPTIONS, defaultOccasion } from "@/lib/occasion";
@@ -37,13 +37,75 @@ function errorMessage(status: number): string {
 
 const noopSubscribe = () => () => {};
 
+// ---------------------------------------------------------------------------
+// Progress is saved to sessionStorage so a refresh (or a quick trip to Amazon) doesn't
+// lose the quiz. Only settled screens are saved: a question waiting for an answer, or results.
+// ---------------------------------------------------------------------------
+
+const STORAGE_KEY = "giftd:quiz";
+
+type Saved = {
+  v: 1;
+  occasion: Occasion;
+  answers: Answer[];
+  /** The question shown for each answer, so Back can return to it. */
+  history: PublicQuestion[];
+  view: Extract<View, { kind: "question" | "result" }>;
+};
+
+let savedCache: Saved | null | undefined;
+
+function readSaved(): Saved | null {
+  if (savedCache === undefined) {
+    try {
+      const raw = sessionStorage.getItem(STORAGE_KEY);
+      const parsed = raw ? (JSON.parse(raw) as Saved) : null;
+      const ok =
+        parsed?.v === 1 &&
+        Array.isArray(parsed.answers) &&
+        Array.isArray(parsed.history) &&
+        (parsed.view?.kind === "question" || parsed.view?.kind === "result");
+      savedCache = ok ? parsed : null;
+    } catch {
+      savedCache = null;
+    }
+  }
+  return savedCache;
+}
+
+function writeSaved(saved: Saved | null) {
+  try {
+    if (saved) sessionStorage.setItem(STORAGE_KEY, JSON.stringify(saved));
+    else sessionStorage.removeItem(STORAGE_KEY);
+  } catch {
+    // Storage can be unavailable (private mode, blocked); the quiz still works without it.
+  }
+}
+
 export default function Quiz({ openers }: { openers: PublicQuestion[] }) {
-  // The page is prerendered, so the calendar default is read on the client (null on the server).
+  // The page is prerendered, so saved progress can only be read on the client. The key swap
+  // remounts the quiz with the saved state once it's available.
+  const saved = useSyncExternalStore(noopSubscribe, readSaved, () => null);
+  return <QuizFlow key={saved ? "restored" : "fresh"} openers={openers} saved={saved} />;
+}
+
+function QuizFlow({ openers, saved }: { openers: PublicQuestion[]; saved: Saved | null }) {
+  // The calendar default is also client-only (null on the server).
   const calendarDefault = useSyncExternalStore(noopSubscribe, () => defaultOccasion(), () => null);
-  const [picked, setPicked] = useState<Occasion | null>(null);
+  const [picked, setPicked] = useState<Occasion | null>(saved?.occasion ?? null);
   const occasion: Occasion = picked ?? calendarDefault ?? "birthday";
-  const [answers, setAnswers] = useState<Answer[]>([]);
-  const [view, setView] = useState<View>({ kind: "landing" });
+  const [answers, setAnswers] = useState<Answer[]>(saved?.answers ?? []);
+  const [history, setHistory] = useState<PublicQuestion[]>(saved?.history ?? []);
+  const [view, setView] = useState<View>(saved?.view ?? { kind: "landing" });
+
+  // Saved progress is cleared only by start() and restart(), never here: on first load the fresh
+  // landing screen renders before the saved copy is read, and must not wipe it.
+  useEffect(() => {
+    if (view.kind === "question" && !view.busy) writeSaved({ v: 1, occasion, answers, history, view });
+    else if (view.kind === "result") {
+      writeSaved({ v: 1, occasion, answers, history, view: { ...view, rerolling: null, rerollError: null } });
+    }
+  }, [view, answers, history, occasion]);
 
   async function postTurn(body: object): Promise<TurnResponse | { error: number }> {
     try {
@@ -71,7 +133,9 @@ export default function Quiz({ openers }: { openers: PublicQuestion[] }) {
   }
 
   function start() {
+    writeSaved(null);
     setAnswers([]);
+    setHistory([]);
     setView({ kind: "question", question: openers[0], index: 1 });
   }
 
@@ -79,6 +143,7 @@ export default function Quiz({ openers }: { openers: PublicQuestion[] }) {
     if (view.kind !== "question" || view.busy) return;
     const next = [...answers, { questionId, optionId }];
     setAnswers(next);
+    setHistory([...history, view.question]);
     if (next.length < openers.length) {
       setView({ kind: "question", question: openers[next.length], index: next.length + 1 });
     } else {
@@ -86,6 +151,20 @@ export default function Quiz({ openers }: { openers: PublicQuestion[] }) {
       setView({ ...view, pickedId: optionId, busy: true });
       void fetchTurn(next);
     }
+  }
+
+  /** Return to the previous question with its old answer highlighted; tapping any answer moves on. */
+  function back() {
+    if (view.kind !== "question" || view.busy) return;
+    if (answers.length === 0) {
+      writeSaved(null);
+      setView({ kind: "landing" });
+      return;
+    }
+    const previous = history[history.length - 1];
+    setAnswers(answers.slice(0, -1));
+    setHistory(history.slice(0, -1));
+    setView({ kind: "question", question: previous, index: answers.length, pickedId: answers[answers.length - 1].optionId });
   }
 
   function retry(failedAnswers: Answer[]) {
@@ -123,7 +202,9 @@ export default function Quiz({ openers }: { openers: PublicQuestion[] }) {
   }
 
   function restart() {
+    writeSaved(null);
     setAnswers([]);
+    setHistory([]);
     setView({ kind: "landing" });
   }
 
@@ -170,7 +251,19 @@ export default function Quiz({ openers }: { openers: PublicQuestion[] }) {
         const compact = options.length > 5;
         return (
         <section key={view.question.id} className="fade-in flex flex-1 flex-col">
-          <Header right={<Pill>{copy.progress(view.index)}</Pill>} />
+          <Header
+            left={
+              <button
+                onClick={back}
+                disabled={view.busy}
+                aria-label={copy.back}
+                className="glass -ml-1 flex size-10 items-center justify-center rounded-full transition-opacity disabled:opacity-50"
+              >
+                <BackIcon />
+              </button>
+            }
+            right={<Pill>{copy.progress(view.index)}</Pill>}
+          />
           <h1
             className={`${compact ? "mt-10 text-[32px]" : "mt-28 text-[38px]"} leading-[1.08] font-extrabold tracking-[-0.035em]`}
           >
@@ -292,12 +385,23 @@ export default function Quiz({ openers }: { openers: PublicQuestion[] }) {
   );
 }
 
-function Header({ right }: { right?: ReactNode }) {
+function Header({ left, right }: { left?: ReactNode; right?: ReactNode }) {
   return (
     <header className="flex items-center justify-between">
-      <span className="text-[26px] font-extrabold tracking-[-0.04em]">giftd</span>
+      <div className="flex items-center gap-3">
+        {left}
+        <span className="text-[26px] font-extrabold tracking-[-0.04em]">giftd</span>
+      </div>
       {right}
     </header>
+  );
+}
+
+function BackIcon() {
+  return (
+    <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M19 12H5M11 6l-6 6 6 6" />
+    </svg>
   );
 }
 

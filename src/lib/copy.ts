@@ -19,6 +19,7 @@ export const copy = {
   findingAnother: "Finding another…",
   rerollFailed: "Couldn't find another one. Try again?",
   restart: "Start over",
+  back: "Back",
   retry: "Try again",
   errors: {
     rateLimited: "That's a lot of gift shopping. Take a breather and try again in a bit.",

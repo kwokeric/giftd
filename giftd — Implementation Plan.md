@@ -256,8 +256,8 @@ Four phases. Each phase ends with something you can play.
 - [x] Results screen with the 3 picks, "why" lines and price ranges
 - [x] Shopping links built from `searchQuery` (plain search links until the affiliate tag exists)
 - [x] "Not it" on each pick: `mode: "reroll"` replaces only that slot and remembers rejected ideas
-- [ ] Back button / edit previous answer
-- [ ] `sessionStorage` persistence
+- [x] Back button: returns to the previous question with the old answer highlighted
+- [x] `sessionStorage` persistence: a refresh restores the current question or the results; Start over clears it
 - [x] Loading states (picked answer stays highlighted while the next turn loads) and CSS fade-in transitions; Framer Motion only if it's still wanted
 - [x] Error states: 429 ("Too many quizzes, try again in a bit"), 502 (retry button)
 
