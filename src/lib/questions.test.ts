@@ -3,9 +3,9 @@ import { ALL_QUESTIONS, BANK, OPENERS, getQuestion } from "./questions";
 import { AGE_BANDS, RELATIONSHIPS } from "./types";
 
 describe("question bank", () => {
-  it("has 3 openers and 52 bank questions", () => {
+  it("has 3 openers and 54 bank questions", () => {
     expect(OPENERS.map((q) => q.id)).toEqual(["relationship", "age", "budget"]);
-    expect(BANK).toHaveLength(52);
+    expect(BANK).toHaveLength(54);
   });
 
   it("has unique question ids", () => {
@@ -20,10 +20,10 @@ describe("question bank", () => {
     }
   });
 
-  it("gives bank questions 2–4 options and a 1–10 priority", () => {
+  it("gives bank questions 2–8 options and a 1–10 priority", () => {
     for (const q of BANK) {
       expect(q.options.length, q.id).toBeGreaterThanOrEqual(2);
-      expect(q.options.length, q.id).toBeLessThanOrEqual(4);
+      expect(q.options.length, q.id).toBeLessThanOrEqual(8);
       expect(q.priority, q.id).toBeGreaterThanOrEqual(1);
       expect(q.priority, q.id).toBeLessThanOrEqual(10);
     }

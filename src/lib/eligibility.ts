@@ -76,9 +76,10 @@ export function validateAnswers(occasion: Occasion, answers: Answer[]): string |
     const q = getQuestion(questionId);
     if (!q) return `unknown question "${questionId}"`;
     if (seen.has(questionId)) return `question "${questionId}" answered twice`;
-    if (!q.options.some((opt) => opt.id === optionId)) {
-      return `unknown option "${optionId}" for "${questionId}"`;
-    }
+    const option = q.options.find((opt) => opt.id === optionId);
+    if (!option) return `unknown option "${optionId}" for "${questionId}"`;
+    const rel = knownRelationship(answers.slice(0, i));
+    if (rel && option.hideFor?.includes(rel)) return `option "${optionId}" isn't offered for a ${rel}`;
     if (i >= OPENER_IDS.length && !eligible(occasion, answers.slice(0, i)).some((e) => e.id === questionId)) {
       return `question "${questionId}" was not eligible at position ${i + 1}`;
     }

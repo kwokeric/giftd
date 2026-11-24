@@ -94,7 +94,7 @@ Key properties:
 
 0. **Occasion** is picked on the landing page (one tap, pre-selected from the date). It isn't counted as a question.
 1. **Q1–Q3 are hard-coded in the client.** No API call, so the quiz starts instantly:
-   - "Who are we shopping for?" Partner · Parent · Grandparent · Sibling · Friend · Coworker · Kid · Someone else
+   - "Who are we shopping for?" Partner · Relative · Friend · Coworker · Someone else
    - "Which one sounds most like them?" Still has a bedtime *(under 12)* · Communicates mostly in eye rolls *(13–19)* · Still uses a parent's streaming password *(20s)* · Gets genuinely excited about a new vacuum *(30s–40s)* · Groans when they sit down *(50s–60s)* · Signs their texts with their name *(70+)*
    - "What's the budget?" Under $25 · $25–50 · $50–100 · $100–250 · $250+
 

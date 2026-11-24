@@ -7,7 +7,7 @@ export default function Home() {
   const openers: PublicQuestion[] = OPENERS.map((q) => ({
     id: q.id,
     text: q.text,
-    options: q.options.map(({ id, label }) => ({ id, label })),
+    options: q.options.map(({ id, label, hideFor }) => ({ id, label, ...(hideFor && { hideFor }) })),
   }));
   return <Quiz openers={openers} />;
 }

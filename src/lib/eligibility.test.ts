@@ -12,7 +12,7 @@ const ids = (answers: Answer[], occasion: Parameters<typeof eligible>[0] = "birt
 
 describe("eligibility personas", () => {
   it("a 7-year-old kid never gets adult questions, gets kid ones", () => {
-    const e = ids(openers("kid", "under_12"));
+    const e = ids(openers("relative", "under_12"));
     expect(e).not.toContain("food_drink");
     expect(e).not.toContain("young_kids");
     expect(e).not.toContain("home_vibe");
@@ -30,7 +30,7 @@ describe("eligibility personas", () => {
 
   it("follow-up chains go two deep", () => {
     const a = [
-      ...openers("sibling", "20s"),
+      ...openers("relative", "20s"),
       { questionId: "free_time", optionId: "media" },
       { questionId: "media_type", optionId: "games" },
     ];
@@ -39,7 +39,7 @@ describe("eligibility personas", () => {
 
   it("partner questions only for partners", () => {
     expect(ids(openers("partner", "30s_40s"))).toContain("couple_stage");
-    expect(ids(openers("parent", "50s_60s"))).not.toContain("couple_stage");
+    expect(ids(openers("relative", "50s_60s"))).not.toContain("couple_stage");
   });
 
   it("coworker closeness only for coworkers", () => {
@@ -48,12 +48,12 @@ describe("eligibility personas", () => {
   });
 
   it("70+ gets mobility, younger doesn't", () => {
-    expect(ids(openers("grandparent", "70_plus"))).toContain("mobility");
-    expect(ids(openers("parent", "50s_60s"))).not.toContain("mobility");
+    expect(ids(openers("relative", "70_plus"))).toContain("mobility");
+    expect(ids(openers("relative", "50s_60s"))).not.toContain("mobility");
   });
 
   it("a teen gets teen questions, not kid or adult ones", () => {
-    const e = ids(openers("sibling", "teen"));
+    const e = ids(openers("relative", "teen"));
     expect(e).toContain("teen_vibe");
     expect(e).toContain("wellness");
     expect(e).not.toContain("kid_interest");
@@ -68,7 +68,7 @@ describe("eligibility personas", () => {
   });
 
   it("excludes work both ways", () => {
-    const kid = openers("kid", "under_12");
+    const kid = openers("relative", "under_12");
     expect(ids([...kid, { questionId: "kid_interest", optionId: "build" }])).not.toContain("free_time");
     expect(ids([...kid, { questionId: "free_time", optionId: "active" }])).not.toContain("kid_interest");
   });
@@ -105,7 +105,14 @@ describe("validateAnswers", () => {
     expect(validateAnswers("birthday", [...base, { questionId: "pets", optionId: "lizard" }])).toMatch(/unknown option/);
     expect(validateAnswers("birthday", [...base, { questionId: "pets", optionId: "dog" }, { questionId: "pets", optionId: "cat" }])).toMatch(/twice/);
     expect(validateAnswers("birthday", [...base, { questionId: "active_type", optionId: "gym" }])).toMatch(/not eligible/);
-    expect(validateAnswers("birthday", [...openers("kid", "under_12"), { questionId: "food_drink", optionId: "cook" }])).toMatch(/not eligible/);
+    expect(validateAnswers("birthday", [...openers("relative", "under_12"), { questionId: "food_drink", optionId: "cook" }])).toMatch(/not eligible/);
+  });
+
+  it("never lets a partner or coworker be a young kid", () => {
+    expect(validateAnswers("birthday", openers("partner", "under_12"))).toMatch(/isn't offered/);
+    expect(validateAnswers("birthday", openers("coworker", "under_12"))).toMatch(/isn't offered/);
+    expect(validateAnswers("birthday", openers("relative", "under_12"))).toBeNull();
+    expect(validateAnswers("birthday", openers("partner", "teen"))).toBeNull();
   });
 
   it("rejects skips (there is no skip)", () => {

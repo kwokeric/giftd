@@ -2,7 +2,7 @@ import { ALL_QUESTIONS, getQuestion } from "./questions";
 import type { Answer, Occasion, Question } from "./types";
 import type { Gift, GiftKind } from "./schemas";
 
-export const PROMPT_VERSION = "p2";
+export const PROMPT_VERSION = "p3";
 
 const OCCASION_LABELS: Record<Occasion, string> = {
   birthday: "a birthday",

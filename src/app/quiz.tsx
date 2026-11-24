@@ -5,7 +5,7 @@ import type { ReactNode } from "react";
 import { copy } from "@/lib/copy";
 import { OCCASION_OPTIONS, defaultOccasion } from "@/lib/occasion";
 import type { Gift, GiftKind, TurnResponse } from "@/lib/schemas";
-import type { Answer, Occasion, PublicQuestion } from "@/lib/types";
+import type { Answer, Occasion, PublicQuestion, Relationship } from "@/lib/types";
 
 type View =
   | { kind: "landing" }
@@ -161,19 +161,32 @@ export default function Quiz({ openers }: { openers: PublicQuestion[] }) {
         </section>
       )}
 
-      {view.kind === "question" && (
+      {view.kind === "question" && (() => {
+        const relationship = answers.find((a) => a.questionId === "relationship")?.optionId;
+        const options = view.question.options.filter(
+          (o) => !relationship || !o.hideFor?.includes(relationship as Relationship),
+        );
+        // Long answer lists get a tighter layout so they still fit on a phone screen.
+        const compact = options.length > 5;
+        return (
         <section key={view.question.id} className="fade-in flex flex-1 flex-col">
           <Header right={<Pill>{copy.progress(view.index)}</Pill>} />
-          <h1 className="mt-28 text-[38px] leading-[1.08] font-extrabold tracking-[-0.035em]">{view.question.text}</h1>
-          <div className="mt-auto flex flex-col gap-3 pt-10">
-            {view.question.options.map((o) => {
+          <h1
+            className={`${compact ? "mt-10 text-[32px]" : "mt-28 text-[38px]"} leading-[1.08] font-extrabold tracking-[-0.035em]`}
+          >
+            {view.question.text}
+          </h1>
+          <div className={`mt-auto flex flex-col pt-8 ${compact ? "gap-2" : "gap-3"}`}>
+            {options.map((o) => {
               const on = view.pickedId === o.id;
               return (
                 <button
                   key={o.id}
                   onClick={() => answer(view.question.id, o.id)}
                   disabled={view.busy}
-                  className={`flex min-h-16 items-center justify-between gap-3 rounded-[20px] px-[22px] py-3 text-left text-lg transition ${
+                  className={`flex items-center justify-between gap-3 rounded-[20px] px-[22px] text-left transition ${
+                    compact ? "min-h-[52px] py-2 text-base" : "min-h-16 py-3 text-lg"
+                  } ${
                     on ? "border border-transparent bg-solid font-bold text-solid-fg" : "glass font-semibold"
                   } ${view.busy && !on ? "opacity-50" : ""}`}
                 >
@@ -188,7 +201,8 @@ export default function Quiz({ openers }: { openers: PublicQuestion[] }) {
             {view.busy ? (answers.length >= 5 ? copy.pickingGifts : copy.thinking) : ""}
           </p>
         </section>
-      )}
+        );
+      })()}
 
       {view.kind === "thinking" && (
         <section className="fade-in flex flex-1 flex-col">
