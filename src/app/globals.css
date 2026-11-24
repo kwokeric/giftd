@@ -1,26 +1,52 @@
 @import "tailwindcss";
 
+/*
+ * Glow theme. Dark is the default (also when the system theme can't be detected);
+ * light applies only when the system explicitly prefers it.
+ */
 :root {
-  --background: #fbf7f2;
-  --foreground: #2a211b;
-  --muted: #7a6c61;
-  --card: #ffffff;
-  --border: #eadfd3;
-  --accent: #e0573a;
-  --accent-soft: #fde6df;
-  --accent-contrast: #ffffff;
+  color-scheme: dark;
+  --background: #120e24;
+  --foreground: #ffffff;
+  --muted: #d9d3e6;
+  --body: #e6e1f0;
+  --kicker: #ffc4e1;
+  --glass: rgba(255, 255, 255, 0.09);
+  --glass-border: rgba(255, 255, 255, 0.22);
+  --solid: rgba(255, 255, 255, 0.94);
+  --solid-fg: #120e24;
+  --outline: rgba(255, 255, 255, 0.25);
+  --track: rgba(255, 255, 255, 0.14);
+  --bar: #ff8cc6;
+  --orb-1: #ff4fa3;
+  --orb-1-opacity: 0.5;
+  --orb-2: #6a5cff;
+  --orb-2-opacity: 0.6;
+  --orb-3: #3fd0ff;
+  --orb-3-opacity: 0.4;
 }
 
-@media (prefers-color-scheme: dark) {
+@media (prefers-color-scheme: light) {
   :root {
-    --background: #1a1613;
-    --foreground: #f3ebe3;
-    --muted: #a8998c;
-    --card: #241f1b;
-    --border: #3a322c;
-    --accent: #f07a5e;
-    --accent-soft: #3a2620;
-    --accent-contrast: #1a1613;
+    color-scheme: light;
+    --background: #f5f2ff;
+    --foreground: #1b1530;
+    --muted: #4a4360;
+    --body: #3a3350;
+    --kicker: #8a2f68;
+    --glass: rgba(255, 255, 255, 0.55);
+    --glass-border: rgba(255, 255, 255, 0.95);
+    --solid: #1b1530;
+    --solid-fg: #ffffff;
+    --outline: rgba(27, 21, 48, 0.2);
+    --track: rgba(27, 21, 48, 0.12);
+    --bar: #6d4aff;
+    --orb-1: #ff9cc9;
+    --orb-1-opacity: 0.7;
+    --orb-2: #a99bff;
+    --orb-2-opacity: 0.65;
+    --orb-3: #9ee6ff;
+    --orb-3-opacity: 0.6;
   }
 }
 
@@ -28,16 +54,76 @@
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-muted: var(--muted);
-  --color-card: var(--card);
-  --color-border: var(--border);
-  --color-accent: var(--accent);
-  --color-accent-soft: var(--accent-soft);
-  --color-accent-contrast: var(--accent-contrast);
-  --font-sans: var(--font-geist-sans);
+  --color-body: var(--body);
+  --color-kicker: var(--kicker);
+  --color-solid: var(--solid);
+  --color-solid-fg: var(--solid-fg);
+  --color-outline: var(--outline);
+  --color-track: var(--track);
+  --color-bar: var(--bar);
+  --font-sans: var(--font-manrope);
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-geist-sans), system-ui, sans-serif;
+  font-family: var(--font-manrope), system-ui, sans-serif;
+}
+
+/* Frosted glass: answer buttons, chips, result cards, pills */
+.glass {
+  background: var(--glass);
+  border: 1px solid var(--glass-border);
+  -webkit-backdrop-filter: blur(18px) saturate(140%);
+  backdrop-filter: blur(18px) saturate(140%);
+}
+
+/* Background glow orbs (fixed behind everything) */
+.orb {
+  position: fixed;
+  border-radius: 9999px;
+  pointer-events: none;
+  filter: blur(90px);
+  z-index: 0;
+}
+.orb-1 {
+  width: 340px;
+  height: 340px;
+  top: -90px;
+  right: -120px;
+  background: var(--orb-1);
+  opacity: var(--orb-1-opacity);
+}
+.orb-2 {
+  width: 320px;
+  height: 320px;
+  top: 38%;
+  left: -150px;
+  background: var(--orb-2);
+  opacity: var(--orb-2-opacity);
+}
+/* Sits behind the answer buttons so the glass has something to frost */
+.orb-3 {
+  width: 300px;
+  height: 300px;
+  bottom: 40px;
+  right: -90px;
+  background: var(--orb-3);
+  opacity: var(--orb-3-opacity);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .fade-in {
+    animation: fade-in 220ms ease-out both;
+  }
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+      transform: translateY(6px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
 }

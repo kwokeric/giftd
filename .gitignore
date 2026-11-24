@@ -45,3 +45,6 @@ next-env.d.ts
 
 # allow the example env file
 !.env.example
+
+# personal Claude Code settings
+/.claude/settings.local.json

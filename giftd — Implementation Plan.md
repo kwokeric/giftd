@@ -252,13 +252,14 @@ Four phases. Each phase ends with something you can play.
 
 **Phase 2 — Results**
 
-- [ ] Results screen with the 3 picks, "why" lines and price ranges
-- [ ] Shopping links built from `searchQuery` (plain search links until the affiliate tag exists)
-- [ ] "Not it" on each pick: `mode: "reroll"` replaces only that slot
+- [x] Visual design: "Glow" theme (blurred color glows, frosted-glass answers and cards, Manrope). Dark by default, light when the system asks for it. Mocks: the design canvas's Final page
+- [x] Results screen with the 3 picks, "why" lines and price ranges
+- [x] Shopping links built from `searchQuery` (plain search links until the affiliate tag exists)
+- [x] "Not it" on each pick: `mode: "reroll"` replaces only that slot and remembers rejected ideas
 - [ ] Back button / edit previous answer
 - [ ] `sessionStorage` persistence
-- [ ] Loading states and Framer Motion card transitions
-- [ ] Error states: 429 ("Too many quizzes, try again in a bit"), 502 (retry button)
+- [x] Loading states (picked answer stays highlighted while the next turn loads) and CSS fade-in transitions; Framer Motion only if it's still wanted
+- [x] Error states: 429 ("Too many quizzes, try again in a bit"), 502 (retry button)
 
 **Phase 3 — Shareability**
 

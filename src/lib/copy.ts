@@ -5,9 +5,9 @@ export const copy = {
   tagline: "Find their gift.",
   occasionPrompt: "What's the occasion?",
   start: "Find a gift",
-  progress: (index: number) => `Question ${index} of up to 10`,
-  loadingQuestion: "Thinking about what to ask next…",
-  loadingResult: "Picking gifts they won't regift…",
+  progress: (index: number) => `${index} of 10`,
+  thinking: "Thinking…",
+  pickingGifts: "Picking gifts they won't regift…",
   resultTitle: "Here's what we'd get them",
   kinds: {
     safe: "Safe bet",
@@ -15,6 +15,9 @@ export const copy = {
     budget: "Budget pick",
   },
   shop: "Shop this",
+  notIt: "Not it",
+  findingAnother: "Finding another…",
+  rerollFailed: "Couldn't find another one. Try again?",
   restart: "Start over",
   retry: "Try again",
   errors: {
