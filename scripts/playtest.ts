@@ -16,7 +16,6 @@ import { OPENERS, getQuestion } from "../src/lib/questions";
 import { PROMPT_VERSION } from "../src/lib/prompt";
 import type { Gift, TurnResponse } from "../src/lib/schemas";
 import { QUESTION_MODEL, RESULT_MODEL, runTurn } from "../src/lib/turn";
-import { SKIP } from "../src/lib/types";
 import type { Answer, Occasion, Question } from "../src/lib/types";
 
 try {
@@ -76,7 +75,7 @@ function costOf(u: Anthropic.Usage, model: string): number {
 const client = new Anthropic();
 
 async function personaAnswers(p: Persona, q: Question | { id: string; text: string; options: { id: string; label: string }[] }): Promise<string> {
-  const ids: [string, ...string[]] = [SKIP, ...q.options.map((o) => o.id)];
+  const ids = q.options.map((o) => o.id) as [string, ...string[]];
   const res = await client.messages.parse({
     model: "claude-haiku-5-5",
     max_tokens: 1000,
@@ -90,14 +89,15 @@ async function personaAnswers(p: Persona, q: Question | { id: string; text: stri
           "",
           `Quiz question: "${q.text}"`,
           ...q.options.map((o) => `- ${o.id}: ${o.label}`),
-          `- ${SKIP}: Skip / idk`,
           "",
-          "Answer as the shopper would: pick the option that fits best. Choose skip only if the shopper genuinely wouldn't know.",
+          "Answer as the shopper would: pick the option that fits best, even if none is perfect.",
         ].join("\n"),
       },
     ],
   });
-  return res.parsed_output?.optionId ?? SKIP;
+  const picked = res.parsed_output?.optionId;
+  if (!picked) throw new Error(`persona couldn't answer "${q.text}" (${res.stop_reason})`);
+  return picked;
 }
 
 const budgetMax: Record<string, number> = { under_25: 25, "25_50": 50, "50_100": 100, "100_250": 250, "250_plus": Infinity };

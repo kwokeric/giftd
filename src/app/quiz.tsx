@@ -4,7 +4,6 @@ import { useState, useSyncExternalStore } from "react";
 import { copy } from "@/lib/copy";
 import { OCCASION_OPTIONS, defaultOccasion } from "@/lib/occasion";
 import type { Gift, TurnResponse } from "@/lib/schemas";
-import { SKIP } from "@/lib/types";
 import type { Answer, Occasion, PublicQuestion } from "@/lib/types";
 
 type View =
@@ -128,12 +127,6 @@ export default function Quiz({ openers }: { openers: PublicQuestion[] }) {
               </button>
             ))}
           </div>
-          <button
-            onClick={() => answer(view.question.id, SKIP)}
-            className="mt-4 self-center px-4 py-2 text-sm text-muted underline-offset-4 hover:underline"
-          >
-            {copy.skip}
-          </button>
         </section>
       )}
 

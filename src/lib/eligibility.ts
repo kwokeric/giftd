@@ -1,5 +1,5 @@
 import { BANK, OPENER_IDS, getQuestion } from "./questions";
-import { AGE_BANDS, RELATIONSHIPS, SKIP } from "./types";
+import { AGE_BANDS, RELATIONSHIPS } from "./types";
 import type { AgeBand, Answer, Occasion, Question, Relationship } from "./types";
 
 const ageIndex = (a: AgeBand) => AGE_BANDS.indexOf(a);
@@ -15,34 +15,27 @@ function knownRelationship(answers: Answer[]): Relationship | null {
 }
 
 /**
- * Is `q` askable given what's known? Rules (see the question bank doc):
- * - every `when` condition must match;
- * - unknown age (skipped) keeps the question, except `minAge: "20s"` or higher, which is dropped;
- * - a positive `relationship` list needs a known matching relationship (no "how long have you
- *   been together?" for someone we know nothing about); `notRelationship` passes when unknown;
- * - `requires` needs the required option actually chosen (a skip doesn't count).
+ * Is `q` askable given what's known? Every `when` condition must match. The openers can't be
+ * skipped, so age and relationship are always known by the time bank questions are picked;
+ * if they're somehow missing, age/relationship conditions fail closed.
  */
 export function conditionsMatch(q: Question, occasion: Occasion, answers: Answer[]): boolean {
   const w = q.when;
   if (!w) return true;
 
   const age = knownAge(answers);
-  if (w.minAge) {
-    if (age === null) {
-      if (ageIndex(w.minAge) >= ageIndex("20s")) return false;
-    } else if (ageIndex(age) < ageIndex(w.minAge)) return false;
-  }
-  if (w.maxAge && age !== null && ageIndex(age) > ageIndex(w.maxAge)) return false;
+  if (w.minAge && (age === null || ageIndex(age) < ageIndex(w.minAge))) return false;
+  if (w.maxAge && (age === null || ageIndex(age) > ageIndex(w.maxAge))) return false;
 
   const rel = knownRelationship(answers);
   if (w.relationship && (rel === null || !w.relationship.includes(rel))) return false;
-  if (w.notRelationship && rel !== null && w.notRelationship.includes(rel)) return false;
+  if (w.notRelationship && (rel === null || w.notRelationship.includes(rel))) return false;
 
   if (w.occasion && !w.occasion.includes(occasion)) return false;
 
   if (w.requires) {
     const given = answers.find((x) => x.questionId === w.requires!.question)?.optionId;
-    if (!given || given === SKIP || !w.requires.options.includes(given)) return false;
+    if (!given || !w.requires.options.includes(given)) return false;
   }
   return true;
 }
@@ -83,7 +76,7 @@ export function validateAnswers(occasion: Occasion, answers: Answer[]): string |
     const q = getQuestion(questionId);
     if (!q) return `unknown question "${questionId}"`;
     if (seen.has(questionId)) return `question "${questionId}" answered twice`;
-    if (optionId !== SKIP && !q.options.some((opt) => opt.id === optionId)) {
+    if (!q.options.some((opt) => opt.id === optionId)) {
       return `unknown option "${optionId}" for "${questionId}"`;
     }
     if (i >= OPENER_IDS.length && !eligible(occasion, answers.slice(0, i)).some((e) => e.id === questionId)) {

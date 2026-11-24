@@ -42,7 +42,7 @@ export type Question = {
   /** Stable forever; used in analytics. Retire, don't rename. */
   id: string;
   text: string;
-  /** 2–4 options (openers are exempt); the UI adds "Skip / idk". */
+  /** 2–4 options (openers are exempt). There is no skip, so include a "none / not sure" answer where one is needed. */
   options: Option[];
   category: QuestionCategory;
   /** 1–10; fallback order if Claude is unavailable. */
@@ -59,11 +59,9 @@ export type Question = {
   excludes?: string[];
 };
 
-export const SKIP = "skip";
-
 export type Answer = {
   questionId: string;
-  optionId: string; // an option id, or "skip"
+  optionId: string;
 };
 
 /** What the client receives for a question: no `fact`s. */

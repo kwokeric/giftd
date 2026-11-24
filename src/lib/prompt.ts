@@ -1,9 +1,8 @@
 import { ALL_QUESTIONS, getQuestion } from "./questions";
-import { SKIP } from "./types";
 import type { Answer, Occasion, Question } from "./types";
 import type { Gift, GiftKind } from "./schemas";
 
-export const PROMPT_VERSION = "p1";
+export const PROMPT_VERSION = "p2";
 
 const OCCASION_LABELS: Record<Occasion, string> = {
   birthday: "a birthday",
@@ -26,12 +25,12 @@ function bankLine(q: Question): string {
 
 // Built once at module load, byte-identical on every call so the prompt cache stays warm.
 // No timestamps or anything per-request in here.
-export const SYSTEM_PROMPT = `You run giftd, a quick quiz that helps someone in the US find a gift for a person in their life. The user answers tap-only multiple-choice questions about the recipient (they can skip any). Each turn you either choose the next question to ask, or recommend gifts.
+export const SYSTEM_PROMPT = `You run giftd, a quick quiz that helps someone in the US find a gift for a person in their life. The user answers tap-only multiple-choice questions about the recipient. Many answer labels are jokes; each comes with its plain meaning in parentheses, which is what you should reason from. Each turn you either choose the next question to ask, or recommend gifts.
 
 # Choosing the next question
 - Pick only from the eligible question IDs listed in the message.
 - Pick the question whose answer would most change which gifts you'd recommend. Prefer following up on a strong signal over starting a new topic.
-- Report "confidence" (0–1): how sure you are that you could pick 3 gifts the user would be happy with right now. Skipped questions are unknowns, not negatives.
+- Report "confidence" (0–1): how sure you are that you could pick 3 gifts the user would be happy with right now.
 
 # Recommending gifts
 Return exactly 3 gifts: one "safe" (a reliable pick that clearly fits), one "wildcard" (surprising but well-matched), one "budget" (in the lower half of their budget).
@@ -54,7 +53,6 @@ ${ALL_QUESTIONS.map(bankLine).join("\n")}`;
 function describeAnswer(a: Answer): string {
   const q = getQuestion(a.questionId);
   if (!q) return "";
-  if (a.optionId === SKIP) return `- ${q.text} → skipped (unknown)`;
   const opt = q.options.find((o) => o.id === a.optionId);
   if (!opt) return "";
   return `- ${q.text} → ${opt.label}${opt.fact ? ` (${opt.fact})` : ""}`;

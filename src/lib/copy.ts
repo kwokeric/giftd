@@ -5,7 +5,6 @@ export const copy = {
   tagline: "A few questions about them. Three gifts they'll actually like.",
   occasionPrompt: "What's the occasion?",
   start: "Find a gift",
-  skip: "Skip / idk",
   progress: (index: number) => `Question ${index} of up to 10`,
   loadingQuestion: "Thinking about what to ask next…",
   loadingResult: "Picking gifts they won't regift…",

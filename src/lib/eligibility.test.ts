@@ -26,7 +26,6 @@ describe("eligibility personas", () => {
     expect(ids(base)).not.toContain("active_type");
     expect(ids([...base, { questionId: "free_time", optionId: "active" }])).toContain("active_type");
     expect(ids([...base, { questionId: "free_time", optionId: "making" }])).not.toContain("active_type");
-    expect(ids([...base, { questionId: "free_time", optionId: "skip" }])).not.toContain("active_type");
   });
 
   it("follow-up chains go two deep", () => {
@@ -41,7 +40,6 @@ describe("eligibility personas", () => {
   it("partner questions only for partners", () => {
     expect(ids(openers("partner", "30s_40s"))).toContain("couple_stage");
     expect(ids(openers("parent", "50s_60s"))).not.toContain("couple_stage");
-    expect(ids(openers("skip", "30s_40s"))).not.toContain("couple_stage");
   });
 
   it("coworker closeness only for coworkers", () => {
@@ -54,12 +52,12 @@ describe("eligibility personas", () => {
     expect(ids(openers("parent", "50s_60s"))).not.toContain("mobility");
   });
 
-  it("skipped age drops 20s+ questions but keeps teen+ ones", () => {
-    const e = ids(openers("friend", "skip"));
-    expect(e).not.toContain("food_drink");
-    expect(e).not.toContain("mobility");
+  it("a teen gets teen questions, not kid or adult ones", () => {
+    const e = ids(openers("sibling", "teen"));
+    expect(e).toContain("teen_vibe");
     expect(e).toContain("wellness");
-    expect(e).toContain("kid_interest"); // maxAge can't be checked, so it stays
+    expect(e).not.toContain("kid_interest");
+    expect(e).not.toContain("food_drink");
   });
 
   it("occasion questions match the occasion", () => {
@@ -72,9 +70,7 @@ describe("eligibility personas", () => {
   it("excludes work both ways", () => {
     const kid = openers("kid", "under_12");
     expect(ids([...kid, { questionId: "kid_interest", optionId: "build" }])).not.toContain("free_time");
-    // If free_time was asked first (age skipped), kid_interest is dropped
-    const unknown = openers("other", "skip");
-    expect(ids([...unknown, { questionId: "free_time", optionId: "active" }])).not.toContain("kid_interest");
+    expect(ids([...kid, { questionId: "free_time", optionId: "active" }])).not.toContain("kid_interest");
   });
 
   it("never repeats a question", () => {
@@ -112,7 +108,7 @@ describe("validateAnswers", () => {
     expect(validateAnswers("birthday", [...openers("kid", "under_12"), { questionId: "food_drink", optionId: "cook" }])).toMatch(/not eligible/);
   });
 
-  it("accepts skips", () => {
-    expect(validateAnswers("birthday", [...openers("skip", "skip", "skip"), { questionId: "pets", optionId: "skip" }])).toBeNull();
+  it("rejects skips (there is no skip)", () => {
+    expect(validateAnswers("birthday", openers("skip", "20s"))).toMatch(/unknown option/);
   });
 });

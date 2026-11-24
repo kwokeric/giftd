@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { ALL_QUESTIONS, BANK, OPENERS, getQuestion } from "./questions";
-import { AGE_BANDS, RELATIONSHIPS, SKIP } from "./types";
+import { AGE_BANDS, RELATIONSHIPS } from "./types";
 
 describe("question bank", () => {
   it("has 3 openers and 52 bank questions", () => {
@@ -13,11 +13,10 @@ describe("question bank", () => {
     expect(new Set(ids).size).toBe(ids.length);
   });
 
-  it("has unique option ids per question, none named 'skip'", () => {
+  it("has unique option ids per question", () => {
     for (const q of ALL_QUESTIONS) {
       const ids = q.options.map((o) => o.id);
       expect(new Set(ids).size, q.id).toBe(ids.length);
-      expect(ids, q.id).not.toContain(SKIP);
     }
   });
 

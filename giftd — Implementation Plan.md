@@ -11,7 +11,7 @@ A mobile-first web app that asks **up to 10** adaptive questions about the perso
 - **Voice:** funny like a friend who knows the person: specific, recognizable behavior ("Groans when they sit down", "Do they order the same thing every time?"), not hype labels. The jokes go in the questions; options stay plain; the gifts are genuinely good. One voice, no tone toggle. See the bank's Voice section.
 - **Output:** 3 picks (safe bet, wildcard, budget option), each with a playful one-line "why", a price range and a shopping link.
 - **No accounts:** open the link, play, share the result.
-- **Answers are tap-only:** every question has 2–4 options plus "Skip / idk". No free text.
+- **Answers are tap-only:** every question has 2–4 options, and there is no skip. Questions that need one include a "none" or "not sure" answer. No free text.
 - **Market:** US only (USD, amazon.com).
 - **Target session length:** under 2 minutes, about 6–10 taps.
 
@@ -131,7 +131,7 @@ type TurnRequest = {
 
 type Answer = {
   questionId: string;           // must exist in the bank
-  optionId: string | "skip";    // must be one of that question's options
+  optionId: string;             // must be one of that question's options
 };
 
 type TurnResponse =
@@ -182,7 +182,7 @@ Zod enforces every limit above on the way in, and the server checks every `quest
 
 1. Pick only from the eligible IDs listed in the message.
 2. Pick the question whose answer would most change which gifts you'd recommend. Prefer following up on a strong signal over starting a new topic.
-3. Report `confidence` (0–1) that you could pick 3 gifts the user would be happy with now. Skipped questions are unknowns, not negatives.
+3. Report `confidence` (0–1) that you could pick 3 gifts the user would be happy with now.
 
 **Picking gifts**
 
@@ -246,7 +246,7 @@ Four phases. Each phase ends with something you can play.
 - [x] Eligibility filter + unit tests
 - [x] Zod schemas for `TurnRequest`, `TurnResponse`, `ModelTurn`, `Gift`, `GiftCategory` (shared by client and server)
 - [x] Build `/api/turn`: system prompt with the bank, per-turn schema, structured output, ID validation, one retry, priority fallback
-- [x] Quiz screen: occasion picker, hard-coded openers, question card, tap options, skip button, "Question 4 of up to 10" progress bar. Results shown as plain cards until Phase 2
+- [x] Quiz screen: occasion picker, hard-coded openers, question card, tap options (no skip), "Question 4 of up to 10" progress bar. Results shown as plain cards until Phase 2
 - [x] Persona playtest script (`npm run playtest`), not yet run: 20 personas across different occasions (e.g. "dad, 60s, golf, has everything, $50–100, Father's Day"). A second Claude call answers as the persona by picking option IDs. Log the questions chosen, question count, picks, categories and cost. Use it to tune the prompt and find gaps in the bank. Also check that the playful voice never leaks into weaker or gimmicky picks.
 - [ ] Hand-play 10 quizzes for real people you know
 
@@ -273,7 +273,7 @@ Four phases. Each phase ends with something you can play.
 **Phase 4 — Harden and launch**
 
 - [ ] Rate limiting per IP with Upstash: 60 `/api/turn` calls per hour (≈ 6–7 full quizzes with re-rolls) and 10 shares per hour
-- [ ] Analytics events: `quiz_start` (with occasion), `question_answered` (with `questionId`, `optionId`, index), `quiz_complete`, `reroll`, `shop_click`, `share`, with the gift fields listed in Gift sourcing. Per-question skip and shop-click rates are how you'll prune and improve the bank; per-pick clicks feed the proven-picks list later.
+- [ ] Analytics events: `quiz_start` (with occasion), `question_answered` (with `questionId`, `optionId`, index), `quiz_complete`, `reroll`, `shop_click`, `share`, with the gift fields listed in Gift sourcing. Per-question drop-off (users who quit on that question) and shop-click rates are how you'll prune and improve the bank; per-pick clicks feed the proven-picks list later.
 - [ ] Apply for Amazon Associates; add affiliate disclosure and a privacy note
 - [ ] Upgrade Vercel to Pro once affiliate links go live
 - [ ] Buy domain, final mobile QA on iOS Safari and Android Chrome
@@ -313,10 +313,11 @@ Guardrails, all in place before launch:
 | --- | --- |
 | Picks feel generic | "Avoid generic" rule, "not it" re-rolls, persona playtests, optional Sonnet for the result call, proven picks post-launch |
 | Silly voice makes picks gimmicky | Prompt rule 9 (good gifts first, gag only when asked), playtest checks |
-| Playful copy confuses people or dates | Plain option labels except the age question; no memes or slang; watch skip rates per question |
+| Playful copy confuses people or dates | Every joke answer has a hidden plain-meaning `fact` for Claude; no memes or slang; watch per-question drop-off and answer spread |
+| No skip forces bad answers | Include a "none" / "not sure" answer where one is needed; persona playtests flag questions with no good fit |
 | Age behaviors put people in the wrong band | Accepted for the mystery; Claude treats age as approximate; kid options are hard to pick for adults, so the age rules stay safe |
 | 10 questions isn't enough signal | Fixed openers cover the big three; persona tests measure pick quality at 5, 7 and 10 questions |
-| The bank misses what matters for some people | Persona playtests to find gaps; skip-rate analytics; adding a question is a code change with no prompt rewrite |
+| The bank misses what matters for some people | Persona playtests to find gaps; drop-off analytics; adding a question is a code change with no prompt rewrite |
 | Claude picks an ineligible ID or fails | ID validation + one retry + priority fallback, so question turns can't break |
 | Picks ignore the budget or occasion | Explicit prompt rules, plus playtest checks that every `priceRange` fits and picks suit the occasion |
 | Slow turns feel laggy | Low effort, fixed openers with no wait, skeleton UI; measure p90 latency in playtests |
