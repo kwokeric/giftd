@@ -1,36 +1,39 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# giftd
 
-## Getting Started
+A few questions about them. Three gifts they'll actually like.
 
-First, run the development server:
+Plan and question bank: [giftd — Implementation Plan.md](giftd%20—%20Implementation%20Plan.md) · [giftd — Question Bank.md](giftd%20—%20Question%20Bank.md)
+
+## Setup
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
+cp .env.example .env.local   # then add your ANTHROPIC_API_KEY
+npm run dev                  # http://localhost:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Without an API key the quiz still runs (it falls back to the highest-priority questions), but it can't recommend gifts.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Scripts
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| Command | What it does |
+| --- | --- |
+| `npm run dev` | Local dev server |
+| `npm test` | Unit tests (question bank + eligibility filter) |
+| `npm run typecheck` | TypeScript check |
+| `npm run lint` | ESLint |
+| `npm run playtest` | 20 persona playtests against the real API (~$0.01 each). `-- --only 3` or `-- --pick 5` to run fewer. Logs to `playtest-results/` |
 
-## Learn More
+## Where things live
 
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+| Path | What |
+| --- | --- |
+| `src/lib/questions.ts` | The question bank (keep in sync with the bank doc) |
+| `src/lib/eligibility.ts` | Which questions can be asked next; answer validation |
+| `src/lib/prompt.ts` | System prompt (cached) and per-turn messages. Bump `PROMPT_VERSION` when it changes |
+| `src/lib/turn.ts` | The turn engine: bounds, Claude calls, retries, fallback |
+| `src/lib/schemas.ts` | Zod schemas, gift categories |
+| `src/lib/copy.ts` | All UI microcopy |
+| `src/app/api/turn/route.ts` | `POST /api/turn` |
+| `src/app/quiz.tsx` | The quiz UI |
+| `scripts/playtest.ts` | Persona playtest |
