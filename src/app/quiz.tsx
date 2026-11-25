@@ -391,11 +391,14 @@ function QuizFlow({ openers, saved }: { openers: PublicQuestion[]; saved: Saved 
                   className={`flex items-center justify-between gap-3 rounded-[20px] px-[22px] text-left transition ${
                     compact ? "min-h-[52px] py-2 text-base" : "min-h-16 py-3 text-lg"
                   } ${
-                    on ? "border border-transparent bg-solid font-bold text-solid-fg" : "glass font-semibold"
+                    on ? "border border-transparent bg-solid font-semibold text-solid-fg" : "glass font-semibold"
                   } ${view.busy && !on ? "opacity-50" : ""}`}
                 >
                   {o.label}
-                  {on && <CheckIcon />}
+                  {/* Always takes its space, so picking an answer never re-wraps the text */}
+                  <span className={on ? "" : "invisible"}>
+                    <CheckIcon />
+                  </span>
                 </button>
               );
             })}
