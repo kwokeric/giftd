@@ -19,14 +19,15 @@ The questions are meant to be fun to answer, with the joke in the answers:
 ## How it works
 
 1. **Three quick openers**: who it's for, roughly how old they are, and the budget. These load instantly.
-2. **Adaptive questions**: AI picks the next question from a hand-written bank of 52, choosing whichever answer would most change the recommendations. It can follow a thread ("Out and active" → "What's their idea of a good sweat?") instead of skimming topics.
-3. **Three gift picks**: once it's confident (never before question 5, never after question 10), it recommends three gifts that fit the occasion and budget.
+2. **A planned set of questions**: AI picks the questions that would most change the recommendations, from a hand-written bank of 54, in one go. Follow-ups slot in by rule as you answer ("Halfway up a trail" → "What's their idea of a good sweat?"), so it can go deep on a topic, and the next question appears instantly.
+3. **Three gift picks**: after at most 10 questions, it recommends three gifts that fit the occasion and budget.
 
 ## Design decisions
 
 - **AI picks the gifts; you refine them.** Recommendations are generated for each person, not pulled from a fixed catalog. Tap "Not it" on any pick and the AI swaps it for something new, remembering what you passed on so the next ideas get closer.
-- **AI picks questions; it doesn't write them.** Every question and answer comes from a curated bank, so the quiz always sounds right and stays on brand. The AI's job is choosing what to ask next.
-- **The rules live in code, not in the prompt.** The server decides which questions are allowed (no wine questions for a kid, no "how long have you been together?" for a coworker), enforces the 5–10 question range, and checks every AI response. If the AI fails, the quiz falls back to the next-best question instead of breaking.
+- **AI picks questions; it doesn't write them.** Every question and answer comes from a curated bank, so the quiz always sounds right and stays on brand. The AI's job is choosing what to ask.
+- **Two AI calls per quiz, not ten.** Asking the AI after every answer meant a wait after every tap. Instead it plans the questions once, the phone handles follow-ups by rule, and the AI only comes back to pick the gifts.
+- **The rules live in code, not in the prompt.** The server decides which questions are allowed (no wine questions for a kid, no "how long have you been together?" for a coworker), enforces the 10-question limit, and checks every AI response. If the AI fails to plan, the quiz falls back to the highest-priority questions instead of breaking.
 - **Tap-only answers.** There's no free text, which keeps the quiz fast on a phone and keeps users' typing out of the AI prompt entirely.
 - **Built to learn.** Every recommendation is tagged with a gift category, so after launch, real click data can show which kinds of gifts work for which kinds of people and feed back into the recommendations.
 - **Tested with simulated shoppers.** A playtest script has AI "shoppers" take the quiz as 20 different people (a golf-obsessed dad, an exhausted new mom, a coworker you barely know) to measure question count, gift quality, cost and speed.

@@ -4,8 +4,9 @@ import { useEffect, useState, useSyncExternalStore } from "react";
 import type { CSSProperties } from "react";
 import { copy } from "@/lib/copy";
 import { OCCASION_OPTIONS, defaultOccasion } from "@/lib/occasion";
-import type { GiftKind, SignedGift, TurnResponse } from "@/lib/schemas";
+import type { GiftKind, PlanStep, SignedGift, TurnResponse } from "@/lib/schemas";
 import { impliedAnswer } from "@/lib/implied";
+import { MAX_ANSWERS, nextPlanned, planSequence } from "@/lib/plan-walk";
 import { OCCASIONS } from "@/lib/types";
 import type { Answer, Occasion, PublicQuestion, Relationship } from "@/lib/types";
 import { ArrowIcon, BackIcon, CheckIcon, GiftCard, Header, Pill, SCREEN, ShareIcon } from "./ui";
@@ -25,8 +26,6 @@ type View =
       shareId: string | null;
     }
   | { kind: "error"; message: string; answers: Answer[] };
-
-const MAX_QUESTIONS = 10;
 
 function errorMessage(status: number): string {
   if (status === 429) return copy.errors.rateLimited;
@@ -71,9 +70,11 @@ async function shareLink(url: string, text: string): Promise<"shared" | "copied"
 const STORAGE_KEY = "giftd:quiz";
 
 type Saved = {
-  v: 1;
+  v: 2;
   occasion: Occasion;
   answers: Answer[];
+  /** The questions the AI planned after the openers (null until then). */
+  plan: PlanStep[] | null;
   /** The question shown for each answer, so Back can return to it. */
   history: PublicQuestion[];
   view: Extract<View, { kind: "question" | "result" }>;
@@ -87,7 +88,7 @@ function readSaved(): Saved | null {
       const raw = sessionStorage.getItem(STORAGE_KEY);
       const parsed = raw ? (JSON.parse(raw) as Saved) : null;
       const ok =
-        parsed?.v === 1 &&
+        parsed?.v === 2 &&
         Array.isArray(parsed.answers) &&
         Array.isArray(parsed.history) &&
         (parsed.view?.kind === "question" || parsed.view?.kind === "result");
@@ -125,16 +126,17 @@ function QuizFlow({ openers, saved }: { openers: PublicQuestion[]; saved: Saved 
   const [notice, setNotice] = useState<string | null>(null);
   const [answers, setAnswers] = useState<Answer[]>(saved?.answers ?? []);
   const [history, setHistory] = useState<PublicQuestion[]>(saved?.history ?? []);
+  const [plan, setPlan] = useState<PlanStep[] | null>(saved?.plan ?? null);
   const [view, setView] = useState<View>(saved?.view ?? { kind: "landing" });
 
   // Saved progress is cleared only by start() and restart(), never here: on first load the fresh
   // landing screen renders before the saved copy is read, and must not wipe it.
   useEffect(() => {
-    if (view.kind === "question" && !view.busy) writeSaved({ v: 1, occasion, answers, history, view });
+    if (view.kind === "question" && !view.busy) writeSaved({ v: 2, occasion, answers, plan, history, view });
     else if (view.kind === "result") {
-      writeSaved({ v: 1, occasion, answers, history, view: { ...view, rerolling: null, rerollError: null } });
+      writeSaved({ v: 2, occasion, answers, plan, history, view: { ...view, rerolling: null, rerollError: null } });
     }
-  }, [view, answers, history, occasion]);
+  }, [view, answers, history, plan, occasion]);
 
   async function postTurn(body: object): Promise<TurnResponse | { error: number }> {
     try {
@@ -150,12 +152,21 @@ function QuizFlow({ openers, saved }: { openers: PublicQuestion[]; saved: Saved 
     }
   }
 
+  /**
+   * The only two calls in a quiz: right after the openers, plan the questions; after the last
+   * planned question, pick the gifts. Everything in between happens on the phone.
+   */
   async function fetchTurn(nextAnswers: Answer[]) {
-    const data = await postTurn({ occasion, answers: nextAnswers, mode: "next" });
+    const mode = nextAnswers.length === openers.length ? "plan" : "result";
+    const data = await postTurn({ occasion, answers: nextAnswers, mode });
     if ("error" in data) {
       setView({ kind: "error", message: errorMessage(data.error), answers: nextAnswers });
-    } else if (data.type === "question") {
-      setView({ kind: "question", question: data.question, index: data.index });
+    } else if (data.type === "plan") {
+      setPlan(data.steps);
+      const first = nextPlanned(data.steps, nextAnswers);
+      // The server never sends an empty plan; if it somehow did, show the retry screen.
+      if (first) setView({ kind: "question", question: first, index: nextAnswers.length + 1 });
+      else setView({ kind: "error", message: copy.errors.generic, answers: nextAnswers });
     } else {
       setView({
         kind: "result",
@@ -174,6 +185,14 @@ function QuizFlow({ openers, saved }: { openers: PublicQuestion[]; saved: Saved 
   const isImplied = (a: Answer, position: number) =>
     position < openers.length && impliedAnswer(occasion, a.questionId) !== undefined;
   const impliedCount = openers.filter((q) => impliedAnswer(occasion, q.id)).length;
+  /**
+   * Questions the user will see in total: the shown openers plus the plan (and the follow-ups
+   * their answers unlocked so far). Before there's a plan, the most it could be.
+   */
+  const totalShown =
+    openers.length -
+    impliedCount +
+    (plan ? Math.min(planSequence(plan, answers).length, MAX_ANSWERS - openers.length) : MAX_ANSWERS - openers.length);
   /** Position among the questions the user actually sees (skipped openers before it don't count). */
   const shownIndex = (index: number) =>
     index - openers.slice(0, index - 1).filter((q) => impliedAnswer(occasion, q.id)).length;
@@ -194,6 +213,7 @@ function QuizFlow({ openers, saved }: { openers: PublicQuestion[]; saved: Saved 
 
   function start() {
     writeSaved(null);
+    setPlan(null);
     const { a, h } = fillImplied([], []);
     setAnswers(a);
     setHistory(h);
@@ -207,11 +227,19 @@ function QuizFlow({ openers, saved }: { openers: PublicQuestion[]; saved: Saved 
     setHistory(h);
     if (next.length < openers.length) {
       setView({ kind: "question", question: openers[next.length], index: next.length + 1 });
-    } else {
-      // Keep the question on screen with the pick highlighted while the next turn loads.
-      setView({ ...view, pickedId: optionId, busy: true });
-      void fetchTurn(next);
+      return;
     }
+    // Planned questions come straight from the plan, no waiting.
+    const upcoming = next.length > openers.length && plan ? nextPlanned(plan, next) : null;
+    if (upcoming) {
+      setView({ kind: "question", question: upcoming, index: next.length + 1 });
+      return;
+    }
+    // Last opener (plan the questions) or last planned question (pick the gifts). Keep the
+    // question on screen with the pick highlighted while that loads.
+    if (next.length === openers.length) setPlan(null);
+    setView({ ...view, pickedId: optionId, busy: true });
+    void fetchTurn(next);
   }
 
   /** Return to the previous question with its old answer highlighted; tapping any answer moves on. */
@@ -310,6 +338,7 @@ function QuizFlow({ openers, saved }: { openers: PublicQuestion[]; saved: Saved 
     writeSaved(null);
     setAnswers([]);
     setHistory([]);
+    setPlan(null);
     setView({ kind: "landing" });
   }
 
@@ -374,7 +403,7 @@ function QuizFlow({ openers, saved }: { openers: PublicQuestion[]; saved: Saved 
                 <BackIcon />
               </button>
             }
-            right={<Pill>{copy.progress(shownIndex(view.index), MAX_QUESTIONS - impliedCount)}</Pill>}
+            right={<Pill>{copy.progress(shownIndex(view.index), totalShown)}</Pill>}
           />
           <h1
             className={`${compact ? "mt-10 text-[32px]" : "mt-28 text-[38px]"} leading-[1.08] font-extrabold tracking-[-0.035em]`}
@@ -407,7 +436,7 @@ function QuizFlow({ openers, saved }: { openers: PublicQuestion[]; saved: Saved 
               );
             })}
           </div>
-          <Progress index={shownIndex(view.index)} total={MAX_QUESTIONS - impliedCount} />
+          <Progress index={shownIndex(view.index)} total={totalShown} />
           {/* No visible loading text: the leaving answers are the loading state. */}
           <p aria-live="polite" className="sr-only">
             {view.busy ? copy.thinking : ""}

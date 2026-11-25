@@ -41,7 +41,7 @@ export function conditionsMatch(q: Question, occasion: Occasion, answers: Answer
   return true;
 }
 
-function isExcluded(q: Question, asked: Set<string>): boolean {
+export function isExcluded(q: Question, asked: Set<string>): boolean {
   if (q.excludes?.some((id) => asked.has(id))) return true;
   // excludes apply both ways
   for (const id of asked) {

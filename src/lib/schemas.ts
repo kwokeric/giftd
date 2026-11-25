@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { OCCASIONS } from "./types";
+import type { PublicQuestion } from "./types";
 
 export const GIFT_CATEGORIES = [
   "kitchen_cooking",
@@ -80,22 +81,28 @@ export const TurnRequest = z
   .object({
     occasion: Occasion,
     answers: z.array(AnswerSchema).max(10),
-    mode: z.enum(["next", "reroll"]),
+    /** plan: after the openers, pick the questions. result: pick the gifts. reroll: replace one gift. */
+    mode: z.enum(["plan", "result", "reroll"]),
     rejected: z.array(z.string().max(80)).max(10).optional(),
     keep: z.array(Gift).max(2).optional(),
     rerollKind: GiftKind.optional(),
   })
-  .refine((r) => r.mode === "next" || (r.rerollKind !== undefined && r.keep !== undefined), {
+  .refine((r) => r.mode !== "reroll" || (r.rerollKind !== undefined && r.keep !== undefined), {
     message: "reroll needs keep and rerollKind",
   });
 export type TurnRequest = z.infer<typeof TurnRequest>;
 
+/**
+ * One planned question plus the follow-ups each answer unlocks, e.g. free_time → "active" →
+ * active_type. The client walks this tree with no further calls until the gifts.
+ */
+export type PlanStep = {
+  question: PublicQuestion;
+  followUps?: Record<string, PlanStep[]>;
+};
+
 export type TurnResponse =
-  | {
-      type: "question";
-      question: { id: string; text: string; options: { id: string; label: string }[] };
-      index: number; // 4–10, for the progress bar
-    }
+  | { type: "plan"; steps: PlanStep[] }
   | { type: "result"; resultId: string; gifts: SignedGift[] };
 
 export const ShareRequest = z.object({
@@ -107,20 +114,12 @@ export type ShareRequest = z.infer<typeof ShareRequest>;
 
 // --- What Claude returns (per-turn schemas; see turn.ts) ---------------------
 
-export function askSchema(eligibleIds: [string, ...string[]]) {
+export function planSchema(eligibleIds: [string, ...string[]]) {
   return z.object({
-    action: z.literal("ask"),
-    questionId: z.enum(eligibleIds),
-    confidence: z.number().describe("0–1: how confident you are that you could pick 3 gifts they'd be happy with now"),
+    questionIds: z.array(z.enum(eligibleIds)).describe("The questions to ask, most useful first"),
   });
 }
 
 export const ResultSchema = z.object({
-  action: z.literal("result"),
   gifts: z.array(ModelGift),
 });
-
-/** Ask or result. Wrapped in an object so the schema root is an object, not an anyOf. */
-export function eitherSchema(eligibleIds: [string, ...string[]]) {
-  return z.object({ turn: z.union([askSchema(eligibleIds), ResultSchema]) });
-}

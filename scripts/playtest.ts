@@ -1,6 +1,7 @@
 /**
  * Persona playtest: a second Claude call plays the quiz as someone shopping for each persona.
- * Logs the questions chosen, question count, picks, cost and latency.
+ * Same flow as the app: one plan call, the planned questions, one result call.
+ * Logs the plan, questions asked, picks, cost and latency.
  *
  *   npm run playtest                 # all personas
  *   npm run playtest -- --only 3     # first 3 personas
@@ -16,6 +17,8 @@ import { OPENERS, getQuestion } from "../src/lib/questions";
 import { PROMPT_VERSION } from "../src/lib/prompt";
 import type { Gift, TurnResponse } from "../src/lib/schemas";
 import { QUESTION_MODEL, RESULT_MODEL, runTurn } from "../src/lib/turn";
+import { nextPlanned } from "../src/lib/plan-walk";
+import { impliedAnswer } from "../src/lib/implied";
 import type { Answer, Occasion, Question } from "../src/lib/types";
 
 try {
@@ -112,6 +115,7 @@ function overBudget(g: Gift, budget: string | undefined): boolean {
 type Log = {
   persona: string;
   occasion: Occasion;
+  plan: string[];
   asked: string[];
   questionCount: number;
   gifts: Gift[];
@@ -123,7 +127,7 @@ type Log = {
 };
 
 async function play(p: Persona): Promise<Log> {
-  const log: Log = { persona: p.who, occasion: p.occasion, asked: [], questionCount: 0, gifts: [], overBudget: [], warnings: [], costUsd: 0, turnMs: [] };
+  const log: Log = { persona: p.who, occasion: p.occasion, plan: [], asked: [], questionCount: 0, gifts: [], overBudget: [], warnings: [], costUsd: 0, turnMs: [] };
   const answers: Answer[] = [];
   const hooks = {
     onUsage: (u: Anthropic.Usage, model: string) => (log.costUsd += costOf(u, model)),
@@ -131,30 +135,35 @@ async function play(p: Persona): Promise<Log> {
   };
 
   for (const q of OPENERS) {
-    const optionId = await personaAnswers(p, q);
+    // Like the app: openers the occasion answers are filled in, not asked.
+    const optionId = impliedAnswer(p.occasion, q.id)?.optionId ?? (await personaAnswers(p, q));
     answers.push({ questionId: q.id, optionId });
     log.asked.push(`${q.id}=${optionId}`);
   }
 
-  for (let guard = 0; guard < 12; guard++) {
+  // Same flow as the app: one plan call, walk the plan locally, one result call.
+  const call = async (mode: "plan" | "result"): Promise<TurnResponse | null> => {
     const t0 = Date.now();
-    let res: TurnResponse;
     try {
-      res = await runTurn({ occasion: p.occasion, answers, mode: "next" }, { client, hooks });
+      return await runTurn({ occasion: p.occasion, answers, mode }, { client, hooks });
     } catch (err) {
       log.error = String(err);
-      break;
+      return null;
     } finally {
       log.turnMs.push(Date.now() - t0);
     }
-    if (res.type === "result") {
-      log.gifts = res.gifts;
-      break;
+  };
+
+  const plan = await call("plan");
+  if (plan?.type === "plan") {
+    log.plan = plan.steps.map((s) => s.question.id);
+    for (let q = nextPlanned(plan.steps, answers); q; q = nextPlanned(plan.steps, answers)) {
+      const optionId = await personaAnswers(p, getQuestion(q.id)!);
+      answers.push({ questionId: q.id, optionId });
+      log.asked.push(`${q.id}=${optionId}`);
     }
-    const q = getQuestion(res.question.id)!;
-    const optionId = await personaAnswers(p, q);
-    answers.push({ questionId: q.id, optionId });
-    log.asked.push(`${q.id}=${optionId}`);
+    const result = await call("result");
+    if (result?.type === "result") log.gifts = result.gifts;
   }
 
   log.questionCount = answers.length;
@@ -181,6 +190,7 @@ async function main() {
     const log = await play(p);
     logs.push(log);
     console.log(`#${i + 1} [${p.occasion}] ${p.who}`);
+    console.log(`   plan: ${log.plan.join(", ")}`);
     console.log(`   asked (${log.questionCount}): ${log.asked.join(" → ")}`);
     for (const g of log.gifts) console.log(`   ${g.kind.padEnd(8)} ${g.name} · ${g.priceRange} · ${g.category}\n            "${g.why}"`);
     if (log.overBudget.length) console.log(`   ⚠ over budget: ${log.overBudget.join(", ")}`);

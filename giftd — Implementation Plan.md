@@ -6,7 +6,7 @@
 
 A mobile-first web app that asks **up to 10** adaptive questions about the person you're shopping for and recommends 3 gifts. It works year-round, for any occasion.
 
-- **How it plays:** like 20 Questions / Akinator, but shorter. The first 3 questions are fixed. After that, an AI picks each next question from a curated [question bank](giftd%20—%20Question%20Bank.md) based on earlier answers, and stops early once it's confident (never before question 5, never after question 10). The AI writes the gift picks, not the questions.
+- **How it plays:** like 20 Questions / Akinator, but shorter. The first 3 questions are fixed. After that, an AI plans the rest in one go from a curated [question bank](giftd%20—%20Question%20Bank.md), based on the occasion and the opening answers. Follow-up questions are added by fixed rules as answers come in, so the questions appear instantly. At most 10 questions. The AI writes the gift picks, not the questions.
 - **Occasions:** birthday, holiday, anniversary, Valentine's, Mother's/Father's Day, graduation, wedding, housewarming, thank-you, just because. Picked on the landing page (not one of the 10 questions) and defaulted from the calendar, e.g. "Holiday" in December and "Valentine's" in early February.
 - **Voice:** funny like a friend who knows the person: specific, recognizable behavior ("Groans when they sit down", "Do they order the same thing every time?"), not hype labels. The jokes go in the questions; options stay plain; the gifts are genuinely good. One voice, no tone toggle. See the bank's Voice section.
 - **Output:** 3 picks (safe bet, wildcard, budget option), each with a playful one-line "why", a price range and a shopping link.
@@ -43,7 +43,7 @@ flowchart LR
     Analytics["Vercel Analytics / PostHog"]
 
     State -- "answer IDs so far" --> Turn
-    Turn -- "next question or 3 gifts" --> State
+    Turn -- "question plan or 3 gifts" --> State
     Turn -- "API key (server only)" --> Claude
     Turn -- "rate-limit check" --> Redis
     UI -- "Share" --> Share
@@ -99,18 +99,16 @@ Key properties:
    - "What's the budget?" Under $25 · $25–50 · $50–100 · $100–250 · $250+
 
    The age options are behaviors; the ranges in italics are hidden from users and used only by the server and Claude. Underneath they're still the same age bands, which the eligibility rules depend on. Some ambiguity is intended.
-2. **Q4–Q10 come from the [question bank](giftd%20—%20Question%20Bank.md)** (52 hand-written questions with fixed options). Each turn:
-   1. The server filters the bank down to **eligible** questions: not yet asked, not excluded by an earlier question, and matching the `when` rules (relationship, age, occasion, follow-up conditions).
-   2. Claude sees what's known so far plus the eligible IDs. It returns either `{ action: "ask", questionId }` (the one that best narrows the gift space) or `{ action: "result", gifts }`.
-   3. The server checks that the ID is eligible and returns the full question (text and option labels; facts stay on the server) to the client.
-3. **The server enforces the bounds** (the model's self-reported confidence is only a hint):
-   - fewer than 5 answers → the model may only pick a question
-   - 5–9 answers → question or result; return the result when `confidence ≥ 0.8`
-   - 10 answers, or no eligible questions left → the model may only return the result
-4. **Fallback:** if Claude fails twice on a question turn, the server picks the eligible question with the highest `priority`. The quiz never breaks on a question; only the result call can fail.
+2. **Q4–Q10 are planned once, then asked with no waiting.** Right after the openers, the client makes one `mode: "plan"` call:
+   1. The server filters the bank down to **eligible** questions: not yet asked, not excluded by an earlier question, and matching the `when` rules (relationship, age, occasion). Follow-ups aren't eligible yet, because their triggering answer hasn't been given.
+   2. Claude sees the occasion, the opening answers and the eligible IDs, and returns 3–6 question IDs, most useful first.
+   3. The server cleans the list (drops ineligible, repeated or mutually excluded picks, tops up from `priority` order if fewer than 3 survive), then attaches each question's **follow-ups**, keyed by the answer that unlocks them (`free_time` → `active` → `active_type`, two levels deep).
+   4. The client walks this plan on its own: each planned question, then the follow-ups its answer unlocked, stopping at 10 answers. Facts stay on the server; the plan carries only text and labels.
+3. **Then one `mode: "result"` call** with all the answers (at least 5) returns the 3 gifts. The server re-validates every answer, including that each one was eligible when it was asked.
+4. **Fallback:** if Claude fails twice on the plan, the server plans from `priority` order, so the quiz never breaks before the gifts. Only the result call can fail (502, with a retry button).
 5. **"Not it"** on a pick re-rolls just that slot (`mode: "reroll"`), keeping the other two.
 
-Worst case is 7 question calls + 1 result call = **8 Claude calls per quiz**, plus up to a few re-rolls. Question calls are tiny: the output is just an ID.
+That's **2 Claude calls per quiz** (one plan, one result), plus any re-rolls. The trade-off: the AI can't change course mid-quiz beyond the rule-based follow-ups, and every quiz runs to the end of its plan instead of stopping early. In return there's no wait between questions.
 
 ### Request / response contract
 
@@ -123,7 +121,7 @@ type Occasion =
 type TurnRequest = {
   occasion: Occasion;
   answers: Answer[];            // includes the 3 fixed openers; max 10
-  mode: "next" | "reroll";      // "reroll" = replace one pick on the results screen
+  mode: "plan" | "result" | "reroll"; // plan: right after the openers; result: after the last planned question; reroll: replace one pick
   rejected?: string[];          // gift names the user said "not it" to; max 10, ≤ 80 chars each
   keep?: Gift[];                // reroll only: the picks to keep
   rerollKind?: Gift["kind"];    // reroll only: which slot to replace
@@ -135,17 +133,17 @@ type Answer = {
 };
 
 type TurnResponse =
-  | {
-      type: "question";
-      question: { id: string; text: string; options: { id: string; label: string }[] }; // `fact` stays server-side
-      index: number;            // 4–10, for the progress bar
-    }
-  | { type: "result"; resultId: string; gifts: Gift[] };  // exactly 3 on "next", exactly 1 on "reroll"; resultId (nanoid) ties analytics events to this result
+  | { type: "plan"; steps: PlanStep[] }
+  | { type: "result"; resultId: string; gifts: Gift[] };  // exactly 3 on "result", exactly 1 on "reroll"; resultId ties analytics events to this result
+
+type PlanStep = {
+  question: { id: string; text: string; options: { id: string; label: string }[] }; // `fact` stays server-side
+  followUps?: Record<string, PlanStep[]>; // optionId → follow-up questions that answer unlocks
+};
 
 // What Claude returns (structured output), before the server resolves it:
-type ModelTurn =
-  | { action: "ask"; questionId: string; confidence: number }
-  | { action: "result"; gifts: Gift[] };
+type ModelPlan = { questionIds: string[] };   // enum of the eligible IDs
+type ModelResult = { gifts: Gift[] };
 
 type Gift = {
   name: string;                 // a gift idea, not a brand/product ("Pour-over coffee kit")
@@ -171,18 +169,18 @@ type GiftCategory =
 
 Zod enforces every limit above on the way in, and the server checks every `questionId` / `optionId` against the bank. Because answers are IDs, **no user-typed text reaches the prompt**: everything Claude reads about the person comes from your own bank. The only client-supplied text is `rejected` and `keep`, which echo Claude's own earlier output and are length-capped.
 
-### What Claude sees each turn
+### What Claude sees
 
 - **System prompt (cached):** the rules below plus the **whole question bank** (ID, text, option labels and facts), about 2–3k tokens. The bank changes only when you deploy, so the cache stays warm.
-- **User message (per turn):** the occasion, the answers so far resolved to plain facts (an option's `fact`, else its label: "Age → probably 50s–60s (groans when they sit down)", "Tech → avoids tech"), the eligible question IDs, the answer count, and the allowed actions.
+- **User message:** the occasion and the answers resolved to plain facts (label plus `fact`: "Who do they call when the Wi-Fi breaks? → You (avoids tech)"; openers the occasion answered appear as "Not asked, assumed from the occasion: …"). The plan call also gets the eligible question IDs; the result call gets any rejected ideas.
 
 ### System prompt rules
 
 **Picking questions**
 
-1. Pick only from the eligible IDs listed in the message.
-2. Pick the question whose answer would most change which gifts you'd recommend. Prefer following up on a strong signal over starting a new topic.
-3. Report `confidence` (0–1) that you could pick 3 gifts the user would be happy with now.
+1. Plan 3–6 questions, only from the eligible IDs listed in the message, most useful first.
+2. Pick the questions whose answers would most change which gifts you'd recommend. Cover different ground and skip near-duplicates.
+3. Follow-ups are added automatically after the answers that unlock them; planning a question with follow-ups is the way to go deep on a topic. The whole quiz is at most 10 questions.
 
 **Picking gifts**
 
@@ -199,8 +197,8 @@ Zod enforces every limit above on the way in, and the server checks every `quest
 
 - **Question bank as code:** the bank lives in `src/lib/questions.ts`, typed with the schema in the bank doc. A unit test checks it: unique IDs, 2–4 options, every `requires`/`excludes` points at a real question and option, and every age option has a `fact`.
 - **Eligibility filter:** a pure function `eligible(bank, occasion, answers) → Question[]`, unit-tested with a handful of personas (e.g. a 7-year-old never gets `food_drink`; `active_type` only appears after `free_time = active`).
-- **Structured output:** use `client.messages.parse()` (or `output_config: { format: … }`) with a JSON schema generated from the Zod schema for `ModelTurn`. On a parse failure, or an ID that isn't eligible, retry once. Then fall back to the highest-priority eligible question (question turns) or return 502 (result turns).
-- **Per-turn schema:** send the ask-only schema when there are fewer than 5 answers, the result-only schema at 10 answers or when nothing is eligible, and the union in between. That makes the bounds a hard guarantee rather than a prompt request.
+- **Structured output:** `client.messages.parse()` with a JSON schema generated from Zod. The plan schema is an array of an enum of the eligible IDs, so Claude can't name a question that isn't allowed. On a parse failure, or too few usable picks, retry once; then plan from priority order (plan) or return 502 (result).
+- **Plan walking is client-safe:** `src/lib/plan-walk.ts` has no question bank in it, so no hidden facts reach the browser.
 - **Model settings:** `claude-haiku-5-5` with `output_config.effort: "low"`. Haiku 5.5 thinks by default at `medium`, which adds latency and output tokens this task doesn't need. If playtests show picks getting worse, raise the result call to `medium`. Optionally A/B `claude-sonnet-5-5` for the result call only (about $0.01 more per quiz).
 - **Prompt caching:** put `cache_control` on the system prompt (rules + bank). Keep it byte-identical between calls: no timestamps, and a stable bank order. Check `usage.cache_read_input_tokens` to confirm it's working.
 - **Latency target:** under 1.5 s per question; the output is just an ID. Show a skeleton card while waiting. No streaming needed.
@@ -244,7 +242,7 @@ Four phases. Each phase ends with something you can play.
 - [ ] Get an Anthropic API key, add it to `.env.local` and as a Vercel env var (`ANTHROPIC_API_KEY`), set a monthly spend limit in the Console
 - [x] Port the [question bank](giftd%20—%20Question%20Bank.md) to `src/lib/questions.ts` with its validation test
 - [x] Eligibility filter + unit tests
-- [x] Zod schemas for `TurnRequest`, `TurnResponse`, `ModelTurn`, `Gift`, `GiftCategory` (shared by client and server)
+- [x] Zod schemas for `TurnRequest`, `TurnResponse`, `ModelPlan`/`ModelResult`, `Gift`, `GiftCategory` (shared by client and server)
 - [x] Build `/api/turn`: system prompt with the bank, per-turn schema, structured output, ID validation, one retry, priority fallback
 - [x] Quiz screen: occasion picker, hard-coded openers, question card, tap options (no skip), "Question 4 of up to 10" progress bar. Results shown as plain cards until Phase 2
 - [x] Persona playtest script (`npm run playtest`), not yet run: 20 personas across different occasions (e.g. "dad, 60s, golf, has everything, $50–100, Father's Day"). A second Claude call answers as the persona by picking option IDs. Log the questions chosen, question count, picks, categories and cost. Use it to tune the prompt and find gaps in the bank. Also check that the playful voice never leaks into weaker or gimmicky picks.
@@ -334,7 +332,7 @@ Decided:
 - [x] Year-round, any occasion
 - [x] US only at launch (USD, amazon.com)
 - [x] Tap-only answers, no free text
-- [x] Questions come from a curated bank; Claude picks the next question and writes the gifts
+- [x] Questions come from a curated bank; Claude plans them once after the openers (rule-based follow-ups in between) and writes the gifts
 - [x] Gifts stay AI-generated; category + click logging now, proven-picks inspiration later
 - [x] One voice across the app, observational humor rather than hype; no tone toggle
 

@@ -525,7 +525,7 @@ export const BANK: Question[] = [
     id: "bougie",
     text: "How bougie are they?",
     options: o(
-      ["luxe", "It's always treat yoself day", "very bougie, only the nice version"],
+      ["luxe", "It's always Treat Yo' Self day", "very bougie, only the nice version"],
       ["brand", "Only one brand, and you know which", "brand loyal"],
       ["nice", "Likes nice things"],
       ["down_to_earth", "Down to earth"],

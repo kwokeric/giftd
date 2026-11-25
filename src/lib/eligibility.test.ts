@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { eligible, fallbackQuestion, validateAnswers } from "./eligibility";
-import { buildTurnMessage } from "./prompt";
+import { buildPlanMessage } from "./prompt";
 import type { Answer } from "./types";
 
 const openers = (relationship: string, age: string, budget = "50_100"): Answer[] => [
@@ -127,7 +127,7 @@ describe("validateAnswers", () => {
   });
 
   it("tells Claude which answers were assumed rather than picked", () => {
-    const msg = buildTurnMessage({ occasion: "mothers_day", answers: openers("relative", "50s_60s"), eligibleIds: ["pets"], allowed: "ask" });
+    const msg = buildPlanMessage({ occasion: "mothers_day", answers: openers("relative", "50s_60s"), eligibleIds: ["pets"] });
     expect(msg).toContain("Not asked, assumed from the occasion: their mom");
     expect(msg).not.toContain("Groans when they sit down");
     expect(msg).toContain("What's the budget? → $50–100");
