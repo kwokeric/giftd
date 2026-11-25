@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useSyncExternalStore } from "react";
+import type { CSSProperties } from "react";
 import { copy } from "@/lib/copy";
 import { OCCASION_OPTIONS, defaultOccasion } from "@/lib/occasion";
 import type { GiftKind, SignedGift, TurnResponse } from "@/lib/schemas";
@@ -383,6 +384,8 @@ function QuizFlow({ openers, saved }: { openers: PublicQuestion[]; saved: Saved 
           <div className={`mt-auto flex flex-col pt-8 ${compact ? "gap-2" : "gap-3"}`}>
             {options.map((o) => {
               const on = view.pickedId === o.id;
+              // While the next turn loads, the other answers leave one after another, top to bottom.
+              const leaveOrder = options.filter((x) => x.id !== view.pickedId).findIndex((x) => x.id === o.id);
               return (
                 <button
                   key={o.id}
@@ -392,7 +395,8 @@ function QuizFlow({ openers, saved }: { openers: PublicQuestion[]; saved: Saved 
                     compact ? "min-h-[52px] py-2 text-base" : "min-h-16 py-3 text-lg"
                   } ${
                     on ? "border border-transparent bg-solid font-semibold text-solid-fg" : "glass font-semibold"
-                  } ${view.busy && !on ? "opacity-50" : ""}`}
+                  } ${view.busy ? (on ? "answer-wait" : "answer-leave") : ""}`}
+                  style={view.busy && !on ? ({ "--i": leaveOrder } as CSSProperties) : undefined}
                 >
                   {o.label}
                   {/* Always takes its space, so picking an answer never re-wraps the text */}
@@ -404,8 +408,9 @@ function QuizFlow({ openers, saved }: { openers: PublicQuestion[]; saved: Saved 
             })}
           </div>
           <Progress index={shownIndex(view.index)} total={MAX_QUESTIONS - impliedCount} />
-          <p aria-live="polite" className="mt-3 h-5 text-sm font-semibold text-muted">
-            {view.busy ? (answers.length >= 5 ? copy.pickingGifts : copy.thinking) : ""}
+          {/* No visible loading text: the leaving answers are the loading state. */}
+          <p aria-live="polite" className="sr-only">
+            {view.busy ? copy.thinking : ""}
           </p>
         </section>
         );

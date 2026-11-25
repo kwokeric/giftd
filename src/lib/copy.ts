@@ -7,7 +7,6 @@ export const copy = {
   start: "Find a gift",
   progress: (index: number, total: number) => `${index} of ${total}`,
   thinking: "Thinking…",
-  pickingGifts: "Picking gifts they won't regift…",
   resultTitle: "Here's what we'd get them",
   kinds: {
     safe: "Safe bet",
