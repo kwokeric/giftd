@@ -14,7 +14,7 @@ export const OCCASIONS = [
 export type Occasion = (typeof OCCASIONS)[number];
 
 // giftd is for adults (20+), so there are no kid or teen bands.
-export const AGE_BANDS = ["20s", "30s_40s", "50s_60s", "70_plus"] as const; // ordered
+export const AGE_BANDS = ["20s", "30s", "40s", "50s_60s", "70_plus"] as const; // ordered
 export type AgeBand = (typeof AGE_BANDS)[number];
 
 export const RELATIONSHIPS = ["partner", "relative", "friend", "coworker", "other"] as const;

@@ -23,10 +23,10 @@ const IMPLIED: Partial<Record<Occasion, Partial<Record<"relationship" | "age", I
     age: { optionId: "20s", note: "a new graduate, probably in their 20s" },
   },
   wedding: {
-    age: { optionId: "30s_40s", note: "assumed late 20s to 40s from the occasion" },
+    age: { optionId: "30s", note: "assumed around 30 from the occasion" },
   },
   housewarming: {
-    age: { optionId: "30s_40s", note: "assumed late 20s to 40s from the occasion" },
+    age: { optionId: "30s", note: "assumed around 30 from the occasion" },
   },
 };
 

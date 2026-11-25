@@ -20,7 +20,7 @@ describe("eligibility personas", () => {
   });
 
   it("follow-ups only appear after the matching answer", () => {
-    const base = openers("friend", "30s_40s");
+    const base = openers("friend", "30s");
     expect(ids(base)).not.toContain("active_type");
     expect(ids([...base, { questionId: "free_time", optionId: "active" }])).toContain("active_type");
     expect(ids([...base, { questionId: "free_time", optionId: "making" }])).not.toContain("active_type");
@@ -36,13 +36,13 @@ describe("eligibility personas", () => {
   });
 
   it("partner questions only for partners", () => {
-    expect(ids(openers("partner", "30s_40s"))).toContain("couple_stage");
+    expect(ids(openers("partner", "30s"))).toContain("couple_stage");
     expect(ids(openers("relative", "50s_60s"))).not.toContain("couple_stage");
   });
 
   it("coworker closeness only for coworkers", () => {
-    expect(ids(openers("coworker", "30s_40s"))).toContain("coworker_closeness");
-    expect(ids(openers("friend", "30s_40s"))).not.toContain("coworker_closeness");
+    expect(ids(openers("coworker", "30s"))).toContain("coworker_closeness");
+    expect(ids(openers("friend", "30s"))).not.toContain("coworker_closeness");
   });
 
   it("70+ gets mobility, younger doesn't", () => {
@@ -67,14 +67,14 @@ describe("eligibility personas", () => {
 
 describe("fallbackQuestion", () => {
   it("picks the highest priority, first in bank order on ties", () => {
-    const q = fallbackQuestion(eligible("birthday", openers("friend", "30s_40s")));
+    const q = fallbackQuestion(eligible("birthday", openers("friend", "30s")));
     expect(q?.id).toBe("free_time");
   });
 });
 
 describe("validateAnswers", () => {
   it("accepts a valid sequence", () => {
-    const a = [...openers("friend", "30s_40s"), { questionId: "free_time", optionId: "active" }, { questionId: "active_type", optionId: "gym" }];
+    const a = [...openers("friend", "30s"), { questionId: "free_time", optionId: "active" }, { questionId: "active_type", optionId: "gym" }];
     expect(validateAnswers("birthday", a)).toBeNull();
   });
 
@@ -100,9 +100,9 @@ describe("validateAnswers", () => {
   });
 
   it("hides answers that don't fit the relationship", () => {
-    const base = openers("coworker", "30s_40s");
+    const base = openers("coworker", "30s");
     expect(validateAnswers("birthday", [...base, { questionId: "care_style", optionId: "hugs" }])).toMatch(/isn't offered/);
-    expect(validateAnswers("birthday", [...openers("friend", "30s_40s"), { questionId: "care_style", optionId: "hugs" }])).toBeNull();
+    expect(validateAnswers("birthday", [...openers("friend", "30s"), { questionId: "care_style", optionId: "hugs" }])).toBeNull();
   });
 
   it("fills in openers the occasion already answers, and rejects anything else", () => {
@@ -110,8 +110,8 @@ describe("validateAnswers", () => {
     expect(validateAnswers("mothers_day", openers("partner", "50s_60s"))).toMatch(/set by the occasion/);
     expect(validateAnswers("fathers_day", openers("relative", "70_plus"))).toMatch(/set by the occasion/);
     expect(validateAnswers("graduation", openers("friend", "20s"))).toBeNull();
-    expect(validateAnswers("graduation", openers("friend", "30s_40s"))).toMatch(/set by the occasion/);
-    expect(validateAnswers("wedding", openers("coworker", "30s_40s"))).toBeNull();
+    expect(validateAnswers("graduation", openers("friend", "30s"))).toMatch(/set by the occasion/);
+    expect(validateAnswers("wedding", openers("coworker", "30s"))).toBeNull();
     expect(validateAnswers("birthday", openers("partner", "20s"))).toBeNull();
   });
 

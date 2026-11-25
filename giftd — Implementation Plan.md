@@ -95,7 +95,7 @@ Key properties:
 0. **Occasion** is picked on the landing page (one tap, pre-selected from the date). It isn't counted as a question.
 1. **Q1–Q3 are hard-coded in the client.** No API call, so the quiz starts instantly:
    - "Who are we shopping for?" Partner · Relative · Friend · Coworker · Someone else
-   - "Which one sounds most like them?" Still uses a parent's streaming password *(20s)* · Gets genuinely excited about a new vacuum *(30s–40s)* · Groans when they sit down *(50s–60s)* · Signs their texts with their name *(70+)*
+   - "Which one sounds most like them?" Still uses a parent's streaming password *(20s)* · Recently joined a run club *(30s)* · Remembers having a cassette player *(40s)* · Groans when they sit down *(50s–60s)* · Signs their texts with their name *(70+)*
    - "What's the budget?" Under $25 · $25–50 · $50–100 · $100–250 · $250+
 
    The age options are behaviors; the ranges in italics are hidden from users and used only by the server and Claude. Underneath they're still the same age bands, which the eligibility rules depend on. Some ambiguity is intended.

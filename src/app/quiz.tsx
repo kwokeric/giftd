@@ -79,7 +79,7 @@ async function shareLink(url: string, text: string): Promise<"shared" | "copied"
 const STORAGE_KEY = "giftd:quiz";
 
 type Saved = {
-  v: 2;
+  v: 3;
   occasion: Occasion;
   answers: Answer[];
   /** The questions the AI planned from who and age (null until then). */
@@ -99,7 +99,7 @@ function readSaved(): Saved | null {
       const raw = sessionStorage.getItem(STORAGE_KEY);
       const parsed = raw ? (JSON.parse(raw) as Saved) : null;
       const ok =
-        parsed?.v === 2 &&
+        parsed?.v === 3 &&
         Array.isArray(parsed.answers) &&
         Array.isArray(parsed.history) &&
         (parsed.view?.kind === "question" || parsed.view?.kind === "result");
@@ -181,9 +181,9 @@ function QuizFlow({ openers, saved }: { openers: PublicQuestion[]; saved: Saved 
   // Saved progress is cleared only by start() and restart(), never here: on first load the fresh
   // landing screen renders before the saved copy is read, and must not wipe it.
   useEffect(() => {
-    if (view.kind === "question" && !view.busy) writeSaved({ v: 2, occasion, answers, plan, planKey: planState?.key, history, view });
+    if (view.kind === "question" && !view.busy) writeSaved({ v: 3, occasion, answers, plan, planKey: planState?.key, history, view });
     else if (view.kind === "result") {
-      writeSaved({ v: 2, occasion, answers, plan, planKey: planState?.key, history, view: { ...view, rerolling: null, rerollError: null } });
+      writeSaved({ v: 3, occasion, answers, plan, planKey: planState?.key, history, view: { ...view, rerolling: null, rerollError: null } });
     }
   }, [view, answers, history, plan, planState, occasion]);
 

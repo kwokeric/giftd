@@ -34,13 +34,13 @@ function seeded(seed: number) {
 
 describe("question plan", () => {
   it("keeps the AI's order and drops ineligible, repeated and follow-up picks", () => {
-    const base = openers("friend", "30s_40s");
+    const base = openers("friend", "30s");
     const steps = buildPlan("birthday", base, ["pets", "kid_interest", "pets", "active_type", "free_time", "humor", "travel"]);
     expect(ids(steps)).toEqual(["pets", "free_time", "humor", "travel"]);
   });
 
   it("tops up from priority order when the AI gives too few (or nothing)", () => {
-    const base = openers("friend", "30s_40s");
+    const base = openers("friend", "30s");
     expect(buildPlan("birthday", base, ["pets"]).length).toBe(PLAN_MIN);
     expect(ids(buildPlan("birthday", base, []))).toContain("free_time"); // priority 10
   });
@@ -85,7 +85,7 @@ describe("question plan", () => {
   });
 
   it("alternates the AI's picks with fun and discovery questions", () => {
-    const base = openers("friend", "30s_40s");
+    const base = openers("friend", "30s");
     const picks = ["free_time", "gift_form", "sentimental", "has_everything"];
     const steps = ids(buildPlan("birthday", base, picks, seeded(7)));
     expect(steps).toHaveLength(picks.length + DISCOVERY + FUN);
@@ -98,7 +98,7 @@ describe("question plan", () => {
   });
 
   it("varies the extras between quizzes, so the whole bank gets asked over time", () => {
-    const base = openers("friend", "30s_40s");
+    const base = openers("friend", "30s");
     const picks = ["free_time", "gift_form", "sentimental", "has_everything"];
     const discovery = new Set<string>();
     const fun = new Set<string>();
@@ -114,7 +114,7 @@ describe("question plan", () => {
   });
 
   it("never lets the AI plan fun questions", () => {
-    const steps = ids(buildPlan("birthday", openers("friend", "30s_40s"), ["zombies", "pets", "humor", "travel"]));
+    const steps = ids(buildPlan("birthday", openers("friend", "30s"), ["zombies", "pets", "humor", "travel"]));
     expect(steps).not.toContain("zombies");
   });
 
@@ -133,8 +133,8 @@ describe("question plan", () => {
       ["mothers_day", openers("relative", "50s_60s")],
       ["birthday", openers("relative", "70_plus")],
       ["valentines", openers("partner", "20s")],
-      ["wedding", openers("coworker", "30s_40s")],
-      ["anniversary", openers("partner", "30s_40s")],
+      ["wedding", openers("coworker", "30s")],
+      ["anniversary", openers("partner", "30s")],
     ];
     const picks: Record<string, string>[] = [
       {},

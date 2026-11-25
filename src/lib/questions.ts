@@ -31,7 +31,8 @@ export const OPENERS: Question[] = [
     text: "Which one sounds most like them?",
     options: o(
       ["20s", "Still uses a parent's streaming password", "probably in their 20s"],
-      ["30s_40s", "Gets genuinely excited about a new vacuum", "probably 30s–40s"],
+      ["30s", "Recently joined a run club", "probably 30s"],
+      ["40s", "Remembers having a cassette player", "probably 40s"],
       ["50s_60s", "Groans when they sit down", "probably 50s–60s"],
       ["70_plus", "Signs their texts with their name", "probably 70+"],
     ),
