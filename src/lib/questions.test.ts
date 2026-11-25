@@ -3,9 +3,9 @@ import { ALL_QUESTIONS, BANK, OPENERS, getQuestion } from "./questions";
 import { AGE_BANDS, RELATIONSHIPS } from "./types";
 
 describe("question bank", () => {
-  it("has 3 openers and 54 bank questions", () => {
+  it("has 3 openers and 60 bank questions", () => {
     expect(OPENERS.map((q) => q.id)).toEqual(["relationship", "age", "budget"]);
-    expect(BANK).toHaveLength(54);
+    expect(BANK).toHaveLength(60);
   });
 
   it("has unique question ids", () => {

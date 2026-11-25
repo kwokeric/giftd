@@ -421,7 +421,7 @@ function QuizFlow({ openers, saved }: { openers: PublicQuestion[]; saved: Saved 
   return (
     <main className={SCREEN}>
       {view.kind === "landing" && (
-        <section className="fade-in flex flex-1 flex-col">
+        <section className="screen-in flex flex-1 flex-col">
           <Header />
           {askedForHelp ? (
             <p className="mt-16 text-base font-bold text-kicker">{copy.helpBanner}</p>
@@ -463,8 +463,10 @@ function QuizFlow({ openers, saved }: { openers: PublicQuestion[]; saved: Saved 
         const options = visibleOptions(view.question, answers);
         // Long answer lists get a tighter layout so they still fit on a phone screen.
         const compact = options.length > 5;
+        // No screen fade here: the header stays put between questions; only the question and
+        // its answers animate in.
         return (
-        <section key={view.question.id} className="fade-in flex flex-1 flex-col">
+        <section key={view.question.id} className="flex flex-1 flex-col">
           <Header
             left={
               <button
@@ -479,7 +481,7 @@ function QuizFlow({ openers, saved }: { openers: PublicQuestion[]; saved: Saved 
             right={<Pill>{copy.progress(shownIndex(view.index), totalShown)}</Pill>}
           />
           <h1
-            className={`${compact ? "mt-10 text-[32px]" : "mt-28 text-[38px]"} leading-[1.08] font-extrabold tracking-[-0.035em]`}
+            className={`fade-in ${compact ? "mt-10 text-[32px]" : "mt-28 text-[38px]"} leading-[1.08] font-extrabold tracking-[-0.035em]`}
           >
             {view.question.text}
           </h1>
@@ -525,7 +527,7 @@ function QuizFlow({ openers, saved }: { openers: PublicQuestion[]; saved: Saved 
       })()}
 
       {view.kind === "thinking" && (
-        <section className="fade-in flex flex-1 flex-col">
+        <section className="screen-in flex flex-1 flex-col">
           <Header />
           <div className="m-auto">
             <PhraseLoader />
@@ -537,7 +539,7 @@ function QuizFlow({ openers, saved }: { openers: PublicQuestion[]; saved: Saved 
       )}
 
       {view.kind === "result" && (
-        <section className="fade-in flex flex-1 flex-col">
+        <section className="screen-in flex flex-1 flex-col">
           <Header
             right={
               <button onClick={restart} className="glass rounded-full px-3.5 py-2 text-sm font-semibold">
@@ -596,7 +598,7 @@ function QuizFlow({ openers, saved }: { openers: PublicQuestion[]; saved: Saved 
       )}
 
       {view.kind === "error" && (
-        <section className="fade-in flex flex-1 flex-col">
+        <section className="screen-in flex flex-1 flex-col">
           <Header />
           <div className="m-auto flex flex-col items-center text-center">
             <p role="alert" className="mb-6 text-lg font-semibold">

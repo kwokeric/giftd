@@ -5,9 +5,9 @@ import { loadShare } from "./shares";
 import { signGift, verifyGift } from "./sign";
 
 const gifts: Gift[] = [
-  { kind: "safe", name: "Photo book", why: "They cry at fridge magnets.", priceRange: "$60–90", category: "keepsakes_personalized", searchQuery: "photo book" },
-  { kind: "wildcard", name: "Pottery class", why: "A new hobby.", priceRange: "$70–100", category: "experiences", searchQuery: "pottery class" },
-  { kind: "budget", name: "Recipe box", why: "For the family recipes.", priceRange: "$50–65", category: "kitchen_cooking", searchQuery: "recipe box" },
+  { kind: "safe", name: "Photo book", priceRange: "$60–90", category: "keepsakes_personalized", searchQuery: "photo book" },
+  { kind: "wildcard", name: "Pottery class", priceRange: "$70–100", category: "experiences", searchQuery: "pottery class" },
+  { kind: "budget", name: "Recipe box", priceRange: "$50–65", category: "kitchen_cooking", searchQuery: "recipe box" },
 ];
 const signed = gifts.map((g) => ({ ...g, sig: signGift(g) }));
 const answers = [
@@ -23,7 +23,7 @@ describe("gift signatures", () => {
   it("verify only the exact gift that was signed", () => {
     const sig = signGift(gifts[0])!;
     expect(verifyGift(gifts[0], sig)).toBe(true);
-    expect(verifyGift({ ...gifts[0], why: "Something else entirely" }, sig)).toBe(false);
+    expect(verifyGift({ ...gifts[0], name: "Something else entirely" }, sig)).toBe(false);
     expect(verifyGift(gifts[0], "nope")).toBe(false);
   });
 });
@@ -41,7 +41,7 @@ describe("POST /api/share", () => {
   });
 
   it("rejects edited or unsigned gifts", async () => {
-    const edited = signed.map((g, i) => (i === 0 ? { ...g, why: "Visit my site for cheap stuff" } : g));
+    const edited = signed.map((g, i) => (i === 0 ? { ...g, name: "Visit my site for cheap stuff" } : g));
     expect((await post({ occasion: "birthday", answers, gifts: edited })).status).toBe(400);
     expect((await post({ occasion: "birthday", answers, gifts })).status).toBe(400);
   });

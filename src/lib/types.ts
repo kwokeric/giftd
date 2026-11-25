@@ -13,7 +13,8 @@ export const OCCASIONS = [
 ] as const;
 export type Occasion = (typeof OCCASIONS)[number];
 
-export const AGE_BANDS = ["under_12", "teen", "20s", "30s_40s", "50s_60s", "70_plus"] as const; // ordered
+// giftd is for adults (20+), so there are no kid or teen bands.
+export const AGE_BANDS = ["20s", "30s_40s", "50s_60s", "70_plus"] as const; // ordered
 export type AgeBand = (typeof AGE_BANDS)[number];
 
 export const RELATIONSHIPS = ["partner", "relative", "friend", "coworker", "other"] as const;
@@ -40,6 +41,11 @@ export type Question = {
   category: QuestionCategory;
   /** 1–10; fallback order if Claude is unavailable. */
   priority: number;
+  /**
+   * Asked for fun, to keep the quiz engaging. The server adds a couple to every plan (the AI
+   * doesn't plan these), and their answers reach the AI as a light signal, not a deciding one.
+   */
+  fun?: boolean;
   when?: {
     relationship?: Relationship[];
     notRelationship?: Relationship[];

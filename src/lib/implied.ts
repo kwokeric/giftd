@@ -16,8 +16,11 @@ const IMPLIED: Partial<Record<Occasion, Partial<Record<"relationship" | "age", I
     relationship: { optionId: "relative", note: "their dad (it's Father's Day)" },
     age: { optionId: "50s_60s", note: "assumed 50+ from the occasion" },
   },
+  valentines: {
+    relationship: { optionId: "partner", note: "their partner (it's Valentine's Day)" },
+  },
   graduation: {
-    age: { optionId: "20s", note: "a new graduate, probably 18 to early 20s" },
+    age: { optionId: "20s", note: "a new graduate, probably in their 20s" },
   },
   wedding: {
     age: { optionId: "30s_40s", note: "assumed late 20s to 40s from the occasion" },

@@ -30,10 +30,10 @@ export function Header({ left, right, logoHref }: { left?: ReactNode; right?: Re
 }
 
 export function Pill({ children }: { children: ReactNode }) {
-  return <span className="glass rounded-full px-3.5 py-2 text-sm font-semibold">{children}</span>;
+  return <span className="glass rounded-full px-3.5 py-2 min-w-[5.75rem] text-center text-sm font-semibold tabular-nums">{children}</span>;
 }
 
-/** A pick: kind, price, name, why, and a row of actions (Shop this is always first). */
+/** A pick: kind, price, name, and a row of actions (Shop this is always first). */
 export function GiftCard({ gift, busy, actions, footer }: { gift: Gift; busy?: boolean; actions?: ReactNode; footer?: ReactNode }) {
   return (
     <article aria-busy={busy} className="glass fade-in relative rounded-[22px] px-[18px] py-4">
@@ -48,8 +48,7 @@ export function GiftCard({ gift, busy, actions, footer }: { gift: Gift; busy?: b
         <span className="text-xs font-extrabold tracking-[0.08em] text-kicker uppercase">{copy.kinds[gift.kind]}</span>
         <span className="text-sm font-semibold text-muted">{gift.priceRange}</span>
       </div>
-      <h2 className="mt-1.5 text-[19px] font-extrabold tracking-[-0.02em]">{gift.name}</h2>
-      <p className="mt-1.5 mb-3 text-sm leading-[1.4] text-body">{gift.why}</p>
+      <h2 className="mt-1.5 mb-3.5 text-[19px] font-extrabold tracking-[-0.02em]">{gift.name}</h2>
       <div className="flex gap-2">
         <a
           href={shopUrl(gift.searchQuery)}

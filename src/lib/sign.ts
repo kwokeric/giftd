@@ -10,7 +10,7 @@ function secret(): string | null {
   return process.env.GIFTD_SHARE_SECRET || (process.env.NODE_ENV !== "production" ? "giftd-dev-only-secret" : null);
 }
 
-const payload = (g: Gift) => JSON.stringify([g.kind, g.name, g.why, g.priceRange, g.category, g.searchQuery]);
+const payload = (g: Gift) => JSON.stringify([g.kind, g.name, g.priceRange, g.category, g.searchQuery]);
 
 export function signGift(g: Gift): string | undefined {
   const s = secret();

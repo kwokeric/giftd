@@ -25,6 +25,7 @@ function askWhen(q: Question): string {
   if (w?.requires) parts.push(`\`${w.requires.question} = ${w.requires.options.join(" / ")}\``);
   let s = parts.join(", ") || "—";
   if (q.excludes) s += `; excludes ${q.excludes.map((e) => `\`${e}\``).join(", ")}`;
+  if (q.fun) s = s === "—" ? "for fun" : `${s}; for fun`;
   return s;
 }
 

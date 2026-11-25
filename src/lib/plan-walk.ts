@@ -2,7 +2,7 @@
 import type { PlanStep } from "./schemas";
 import type { Answer, PublicQuestion } from "./types";
 
-export const MAX_ANSWERS = 10;
+export const MAX_ANSWERS = 12;
 
 /**
  * The questions to ask, in order, given the plan and the answers so far: each planned question,

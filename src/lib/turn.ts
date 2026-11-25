@@ -34,7 +34,8 @@ export type TurnHooks = {
   onWarn?: (message: string) => void;
 };
 
-type Ctx = { client: Anthropic; hooks?: TurnHooks };
+/** random: for the plan's discovery questions (tests pass a seeded one). */
+type Ctx = { client: Anthropic; hooks?: TurnHooks; random?: () => number };
 
 async function callModel<S extends z.ZodType>(
   ctx: Ctx,
@@ -115,7 +116,8 @@ export async function runTurn(req: TurnRequest, ctx: Ctx): Promise<TurnResponse>
   if (req.mode === "plan") {
     // Planned from who and age only, so the call can run while the user picks a budget.
     if (answers.length !== PLAN_OPENER_COUNT) throw new TurnError(400, "plan comes right after who and age");
-    const candidates = eligible(occasion, answers);
+    // Fun questions are added by the server (buildPlan), not planned by the AI.
+    const candidates = eligible(occasion, answers).filter((q) => !q.fun);
     let picked: string[] = [];
     if (candidates.length > 0) {
       const ids = candidates.map((q) => q.id) as [string, ...string[]];
@@ -126,7 +128,7 @@ export async function runTurn(req: TurnRequest, ctx: Ctx): Promise<TurnResponse>
       }
     }
     // buildPlan drops bad picks and tops up from priority order, so the quiz never stalls.
-    const steps = buildPlan(occasion, answers, picked.slice(0, PLAN_MAX));
+    const steps = buildPlan(occasion, answers, picked.slice(0, PLAN_MAX), ctx.random ?? Math.random);
     if (steps.length === 0) throw new TurnError(502, "No questions to ask");
     return { type: "plan", steps };
   }

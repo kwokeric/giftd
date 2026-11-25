@@ -6,7 +6,7 @@ export default function NotFound() {
   return (
     <main className={SCREEN}>
       <Header logoHref="/" />
-      <section className="fade-in flex flex-1 flex-col">
+      <section className="screen-in flex flex-1 flex-col">
         <h1 className="mt-24 text-[40px] leading-[1.04] font-extrabold tracking-[-0.04em]">{copy.notFoundTitle}</h1>
         <p className="mt-4 text-lg font-semibold text-muted">{copy.notFoundBody}</p>
         <Link

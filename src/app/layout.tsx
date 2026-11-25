@@ -18,7 +18,7 @@ const siteUrl =
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: "giftd",
-  description: "Find their gift.",
+  description: "Find their gift",
 };
 
 export const viewport: Viewport = {

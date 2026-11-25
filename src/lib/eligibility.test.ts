@@ -12,14 +12,11 @@ const ids = (answers: Answer[], occasion: Parameters<typeof eligible>[0] = "birt
   eligible(occasion, answers).map((q) => q.id);
 
 describe("eligibility personas", () => {
-  it("a 7-year-old kid never gets adult questions, gets kid ones", () => {
-    const e = ids(openers("relative", "under_12"));
-    expect(e).not.toContain("food_drink");
-    expect(e).not.toContain("young_kids");
-    expect(e).not.toContain("home_vibe");
-    expect(e).not.toContain("teen_vibe");
-    expect(e).toContain("kid_interest");
-    expect(e).toContain("kid_reading");
+  it("every adult gets the adult questions", () => {
+    const e = ids(openers("relative", "20s"));
+    expect(e).toContain("food_drink");
+    expect(e).toContain("young_kids");
+    expect(e).toContain("style");
   });
 
   it("follow-ups only appear after the matching answer", () => {
@@ -53,13 +50,6 @@ describe("eligibility personas", () => {
     expect(ids(openers("relative", "50s_60s"))).not.toContain("mobility");
   });
 
-  it("a teen gets teen questions, not kid or adult ones", () => {
-    const e = ids(openers("relative", "teen"));
-    expect(e).toContain("teen_vibe");
-    expect(e).toContain("wellness");
-    expect(e).not.toContain("kid_interest");
-    expect(e).not.toContain("food_drink");
-  });
 
   it("occasion questions match the occasion", () => {
     expect(ids(openers("friend", "20s"), "wedding")).toContain("wedding_angle");
@@ -68,11 +58,6 @@ describe("eligibility personas", () => {
     expect(ids(openers("friend", "20s"), "thank_you")).toContain("thank_you_for");
   });
 
-  it("excludes work both ways", () => {
-    const kid = openers("relative", "under_12");
-    expect(ids([...kid, { questionId: "kid_interest", optionId: "build" }])).not.toContain("free_time");
-    expect(ids([...kid, { questionId: "free_time", optionId: "active" }])).not.toContain("kid_interest");
-  });
 
   it("never repeats a question", () => {
     const a = [...openers("friend", "20s"), { questionId: "pets", optionId: "dog" }];
@@ -106,14 +91,18 @@ describe("validateAnswers", () => {
     expect(validateAnswers("birthday", [...base, { questionId: "pets", optionId: "lizard" }])).toMatch(/unknown option/);
     expect(validateAnswers("birthday", [...base, { questionId: "pets", optionId: "dog" }, { questionId: "pets", optionId: "cat" }])).toMatch(/twice/);
     expect(validateAnswers("birthday", [...base, { questionId: "active_type", optionId: "gym" }])).toMatch(/not eligible/);
-    expect(validateAnswers("birthday", [...openers("relative", "under_12"), { questionId: "food_drink", optionId: "cook" }])).toMatch(/not eligible/);
+    expect(validateAnswers("birthday", [...openers("relative", "20s"), { questionId: "mobility", optionId: "fine" }])).toMatch(/not eligible|unknown option/);
   });
 
-  it("never lets a partner or coworker be a young kid", () => {
-    expect(validateAnswers("birthday", openers("partner", "under_12"))).toMatch(/isn't offered/);
-    expect(validateAnswers("birthday", openers("coworker", "under_12"))).toMatch(/isn't offered/);
-    expect(validateAnswers("birthday", openers("relative", "under_12"))).toBeNull();
-    expect(validateAnswers("birthday", openers("partner", "teen"))).toBeNull();
+  it("is for adults only: no kid or teen ages", () => {
+    expect(validateAnswers("birthday", openers("relative", "under_12"))).toMatch(/unknown option/);
+    expect(validateAnswers("birthday", openers("friend", "teen"))).toMatch(/unknown option/);
+  });
+
+  it("hides answers that don't fit the relationship", () => {
+    const base = openers("coworker", "30s_40s");
+    expect(validateAnswers("birthday", [...base, { questionId: "care_style", optionId: "hugs" }])).toMatch(/isn't offered/);
+    expect(validateAnswers("birthday", [...openers("friend", "30s_40s"), { questionId: "care_style", optionId: "hugs" }])).toBeNull();
   });
 
   it("fills in openers the occasion already answers, and rejects anything else", () => {
@@ -121,7 +110,7 @@ describe("validateAnswers", () => {
     expect(validateAnswers("mothers_day", openers("partner", "50s_60s"))).toMatch(/set by the occasion/);
     expect(validateAnswers("fathers_day", openers("relative", "70_plus"))).toMatch(/set by the occasion/);
     expect(validateAnswers("graduation", openers("friend", "20s"))).toBeNull();
-    expect(validateAnswers("graduation", openers("friend", "teen"))).toMatch(/set by the occasion/);
+    expect(validateAnswers("graduation", openers("friend", "30s_40s"))).toMatch(/set by the occasion/);
     expect(validateAnswers("wedding", openers("coworker", "30s_40s"))).toBeNull();
     expect(validateAnswers("birthday", openers("partner", "20s"))).toBeNull();
   });

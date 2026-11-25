@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { MAX_ANSWERS } from "./plan-walk";
 import { OCCASIONS } from "./types";
 import type { PublicQuestion } from "./types";
 
@@ -48,7 +49,6 @@ export type GiftKind = z.infer<typeof GiftKind>;
  */
 export const ModelGift = z.object({
   name: z.string().describe("A gift idea, not a brand or specific product, e.g. 'Pour-over coffee kit'"),
-  why: z.string().describe("One warm, slightly funny line tied to their answers"),
   priceRange: z.string().describe("e.g. '$25–40'"),
   kind: GiftKind,
   category: GiftCategory,
@@ -58,7 +58,6 @@ export const ModelGift = z.object({
 /** Gift as it travels between client and server (length-capped). */
 export const Gift = z.object({
   name: z.string().min(1).max(80),
-  why: z.string().min(1).max(240),
   priceRange: z.string().min(1).max(30),
   kind: GiftKind,
   category: GiftCategory,
@@ -80,7 +79,7 @@ export const AnswerSchema = z.object({
 export const TurnRequest = z
   .object({
     occasion: Occasion,
-    answers: z.array(AnswerSchema).max(10),
+    answers: z.array(AnswerSchema).max(MAX_ANSWERS),
     /** plan: after the openers, pick the questions. result: pick the gifts. reroll: replace one gift. */
     mode: z.enum(["plan", "result", "reroll"]),
     rejected: z.array(z.string().max(80)).max(10).optional(),
@@ -107,7 +106,7 @@ export type TurnResponse =
 
 export const ShareRequest = z.object({
   occasion: Occasion,
-  answers: z.array(AnswerSchema).max(10),
+  answers: z.array(AnswerSchema).max(MAX_ANSWERS),
   gifts: z.array(SignedGift).length(3),
 });
 export type ShareRequest = z.infer<typeof ShareRequest>;

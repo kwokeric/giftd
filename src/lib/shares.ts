@@ -1,6 +1,7 @@
 import { Redis } from "@upstash/redis";
 import { customAlphabet } from "nanoid";
 import { z } from "zod";
+import { MAX_ANSWERS } from "./plan-walk";
 import { AnswerSchema, Gift, Occasion } from "./schemas";
 import { RELATIONSHIPS } from "./types";
 
@@ -9,7 +10,7 @@ export const ShareRecord = z.object({
   v: z.literal(1),
   occasion: Occasion,
   relationship: z.enum(RELATIONSHIPS).nullable(),
-  answers: z.array(AnswerSchema).max(10),
+  answers: z.array(AnswerSchema).max(MAX_ANSWERS),
   gifts: z.array(Gift).length(3),
   createdAt: z.string(),
 });

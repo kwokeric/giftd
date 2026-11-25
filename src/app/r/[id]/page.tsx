@@ -43,7 +43,7 @@ async function SharedResult({ params }: Props) {
   const { title, occasion } = shareHeadline(share);
 
   return (
-    <section className="fade-in flex flex-1 flex-col">
+    <section className="screen-in flex flex-1 flex-col">
       <p className="mt-6 text-xs font-extrabold tracking-[0.08em] text-kicker uppercase">{occasion}</p>
       <h1 className="mt-1.5 mb-[18px] text-[30px] leading-[1.06] font-extrabold tracking-[-0.035em]">{title}</h1>
       <div className="flex flex-col gap-3">

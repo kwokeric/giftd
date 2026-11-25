@@ -4,12 +4,12 @@
 
 ## Overview
 
-A mobile-first web app that asks **up to 10** adaptive questions about the person you're shopping for and recommends 3 gifts. It works year-round, for any occasion.
+A mobile-first web app that asks **up to 12** adaptive questions about the person you're shopping for and recommends 3 gifts. It works year-round, for any occasion.
 
-- **How it plays:** like 20 Questions / Akinator, but shorter. The first 3 questions are fixed. After that, an AI plans the rest in one go from a curated [question bank](giftd%20—%20Question%20Bank.md), based on the occasion and the opening answers. Follow-up questions are added by fixed rules as answers come in, so the questions appear instantly. At most 10 questions. The AI writes the gift picks, not the questions.
-- **Occasions:** birthday, holiday, anniversary, Valentine's, Mother's/Father's Day, graduation, wedding, housewarming, thank-you, just because. Picked on the landing page (not one of the 10 questions) and defaulted from the calendar, e.g. "Holiday" in December and "Valentine's" in early February.
+- **How it plays:** like 20 Questions / Akinator, but shorter. The first 3 questions are fixed. After that, an AI plans the rest in one go from a curated [question bank](giftd%20—%20Question%20Bank.md), based on the occasion and the opening answers. Follow-up questions are added by fixed rules as answers come in, so the questions appear instantly. At most 12 questions. The AI writes the gift picks, not the questions.
+- **Occasions:** birthday, holiday, anniversary, Valentine's, Mother's/Father's Day, graduation, wedding, housewarming, thank-you, just because. Picked on the landing page (not one of the 12 questions) and defaulted from the calendar, e.g. "Holiday" in December and "Valentine's" in early February.
 - **Voice:** funny like a friend who knows the person: specific, recognizable behavior ("Groans when they sit down", "Do they order the same thing every time?"), not hype labels. The jokes go in the questions; options stay plain; the gifts are genuinely good. One voice, no tone toggle. See the bank's Voice section.
-- **Output:** 3 picks (safe bet, wildcard, budget option), each with a playful one-line "why", a price range and a shopping link.
+- **Output:** 3 picks (safe bet, wildcard, budget option), each with a price range and a shopping link. No explanation blurb: the cards stay short. Recipients are adults (20+).
 - **No accounts:** open the link, play, share the result.
 - **Answers are tap-only:** every question has 2–4 options, and there is no skip. Questions that need one include a "none" or "not sure" answer. No free text.
 - **Market:** US only (USD, amazon.com).
@@ -95,15 +95,15 @@ Key properties:
 0. **Occasion** is picked on the landing page (one tap, pre-selected from the date). It isn't counted as a question.
 1. **Q1–Q3 are hard-coded in the client.** No API call, so the quiz starts instantly:
    - "Who are we shopping for?" Partner · Relative · Friend · Coworker · Someone else
-   - "Which one sounds most like them?" Still has a bedtime *(under 12)* · Communicates mostly in eye rolls *(13–19)* · Still uses a parent's streaming password *(20s)* · Gets genuinely excited about a new vacuum *(30s–40s)* · Groans when they sit down *(50s–60s)* · Signs their texts with their name *(70+)*
+   - "Which one sounds most like them?" Still uses a parent's streaming password *(20s)* · Gets genuinely excited about a new vacuum *(30s–40s)* · Groans when they sit down *(50s–60s)* · Signs their texts with their name *(70+)*
    - "What's the budget?" Under $25 · $25–50 · $50–100 · $100–250 · $250+
 
    The age options are behaviors; the ranges in italics are hidden from users and used only by the server and Claude. Underneath they're still the same age bands, which the eligibility rules depend on. Some ambiguity is intended.
-2. **Q4–Q10 are planned once, then asked with no waiting.** As soon as who and age are answered, the client makes one `mode: "plan"` call in the background, so it loads while the user picks a budget (for Mother's and Father's Day, who and age are implied, so it starts when the quiz opens). The budget doesn't change which questions are worth asking; it only matters for the gifts. If the user changes who or age, the client plans again and ignores the old response.
+2. **Q4–Q12 are planned once, then asked with no waiting.** As soon as who and age are answered, the client makes one `mode: "plan"` call in the background, so it loads while the user picks a budget (for Mother's and Father's Day, who and age are implied, so it starts when the quiz opens). The budget doesn't change which questions are worth asking; it only matters for the gifts. If the user changes who or age, the client plans again and ignores the old response.
    1. The server filters the bank down to **eligible** questions: not yet asked, not excluded by an earlier question, and matching the `when` rules (relationship, age, occasion). Follow-ups aren't eligible yet, because their triggering answer hasn't been given.
-   2. Claude sees the occasion, who and age, and the eligible IDs, and returns 3–6 question IDs, most useful first.
+   2. Claude sees the occasion, who and age, and the eligible IDs, and returns 4–6 question IDs, most useful first. The server then mixes in 1 discovery question at random (weighted by priority) so the rest of the bank gets asked over time and the click data covers it, plus 2 "for fun" personality questions (the AI never plans those) to keep it engaging. The order alternates: useful, fun, useful, discovery, useful, fun, then the rest.
    3. The server cleans the list (drops ineligible, repeated or mutually excluded picks, tops up from `priority` order if fewer than 3 survive), then attaches each question's **follow-ups**, keyed by the answer that unlocks them (`free_time` → `active` → `active_type`, two levels deep).
-   4. The client walks this plan on its own: each planned question, then the follow-ups its answer unlocked, stopping at 10 answers. Facts stay on the server; the plan carries only text and labels.
+   4. The client walks this plan on its own: each planned question, then the follow-ups its answer unlocked, stopping at 12 answers. Facts stay on the server; the plan carries only text and labels.
 3. **Then one `mode: "result"` call** with all the answers (at least 5) returns the 3 gifts. The server re-validates every answer, including that each one was eligible when it was asked.
 4. **Fallback:** if Claude fails twice on the plan, the server plans from `priority` order, so the quiz never breaks before the gifts. Only the result call can fail (502, with a retry button).
 5. **"Not it"** on a pick re-rolls just that slot (`mode: "reroll"`), keeping the other two.
@@ -147,7 +147,6 @@ type ModelResult = { gifts: Gift[] };
 
 type Gift = {
   name: string;                 // a gift idea, not a brand/product ("Pour-over coffee kit")
-  why: string;                  // one playful line, tied to their answers
   priceRange: string;           // e.g. "$25–40"
   kind: "safe" | "wildcard" | "budget";
   category: GiftCategory;       // fixed enum, enforced by the output schema; see Gift sourcing
@@ -178,9 +177,9 @@ Zod enforces every limit above on the way in, and the server checks every `quest
 
 **Picking questions**
 
-1. Plan 3–6 questions, only from the eligible IDs listed in the message, most useful first.
+1. Plan 4–6 questions, only from the eligible IDs listed in the message, most useful first.
 2. Pick the questions whose answers would most change which gifts you'd recommend. Cover different ground and skip near-duplicates.
-3. Follow-ups are added automatically after the answers that unlock them; planning a question with follow-ups is the way to go deep on a topic. The whole quiz is at most 10 questions.
+3. Follow-ups are added automatically after the answers that unlock them; planning a question with follow-ups is the way to go deep on a topic. The app mixes in 1 more at random and 2 for-fun questions, whose answers are a light signal. The whole quiz is at most 12 questions.
 
 **Picking gifts**
 
@@ -190,7 +189,7 @@ Zod enforces every limit above on the way in, and the server checks every `quest
 7. Never name a specific brand, product or URL. Return only a gift idea and a search query.
 8. Never repeat anything in `rejected`.
 9. Picks must be genuinely good gifts a thoughtful friend would choose. Gag gifts only when `humor = gag`, and even then at most one, and it must still be useful or fun to own.
-10. Voice: the `why` line is warm and a little funny, like a friend who knows them, and PG. Prefer a specific observation over hype. Tease the situation, never the giver or the recipient. The voice affects only the `why` lines, never the quality of the picks.
+10. Recipients are adults (20+). Never mention an age or age group in a gift name; nobody was asked their exact age.
 11. Tag every pick with the closest `category`.
 
 ### Implementation notes
@@ -244,14 +243,14 @@ Four phases. Each phase ends with something you can play.
 - [x] Eligibility filter + unit tests
 - [x] Zod schemas for `TurnRequest`, `TurnResponse`, `ModelPlan`/`ModelResult`, `Gift`, `GiftCategory` (shared by client and server)
 - [x] Build `/api/turn`: system prompt with the bank, per-turn schema, structured output, ID validation, one retry, priority fallback
-- [x] Quiz screen: occasion picker, hard-coded openers, question card, tap options (no skip), "Question 4 of up to 10" progress bar. Results shown as plain cards until Phase 2
+- [x] Quiz screen: occasion picker, hard-coded openers, question card, tap options (no skip), "Question 4 of up to 12" progress bar. Results shown as plain cards until Phase 2
 - [x] Persona playtest script (`npm run playtest`), not yet run: 20 personas across different occasions (e.g. "dad, 60s, golf, has everything, $50–100, Father's Day"). A second Claude call answers as the persona by picking option IDs. Log the questions chosen, question count, picks, categories and cost. Use it to tune the prompt and find gaps in the bank. Also check that the playful voice never leaks into weaker or gimmicky picks.
 - [ ] Hand-play 10 quizzes for real people you know
 
 **Phase 2 — Results**
 
 - [x] Visual design: "Glow" theme (blurred color glows, frosted-glass answers and cards, Manrope). Dark by default, light when the system asks for it. Mocks: the design canvas's Final page
-- [x] Results screen with the 3 picks, "why" lines and price ranges
+- [x] Results screen with the 3 picks and price ranges (the "why" lines were later dropped)
 - [x] Shopping links built from `searchQuery` (plain search links until the affiliate tag exists)
 - [x] "Not it" on each pick: `mode: "reroll"` replaces only that slot and remembers rejected ideas
 - [x] Back button: returns to the previous question with the old answer highlighted
@@ -301,7 +300,7 @@ Guardrails, all in place before launch:
 - Monthly spend limit in the Anthropic Console as the hard cap
 - Per-IP rate limit on `/api/turn` and `/api/share`
 - Answers are bank IDs, validated server-side, so no free text reaches the prompt
-- Zod caps on request size: ≤ 10 answers, ≤ 10 rejected ideas of ≤ 80 chars. With no server-side sessions, this is what bounds the cost of a single call.
+- Zod caps on request size: ≤ 12 answers, ≤ 10 rejected ideas of ≤ 80 chars. With no server-side sessions, this is what bounds the cost of a single call.
 - Short prompts: send only resolved question/answer pairs, not prior AI explanations
 - `max_tokens` capped on every call (2,000 for question turns, 4,000 for gift turns; thinking tokens count toward it, and at Haiku output prices the cap costs at most $0.002)
 - No storage of quiz answers unless the user shares; no IP or PII in logs or shared results
@@ -314,8 +313,8 @@ Guardrails, all in place before launch:
 | Silly voice makes picks gimmicky | Prompt rule 9 (good gifts first, gag only when asked), playtest checks |
 | Playful copy confuses people or dates | Every joke answer has a hidden plain-meaning `fact` for Claude; no memes or slang; watch per-question drop-off and answer spread |
 | No skip forces bad answers | Include a "none" / "not sure" answer where one is needed; persona playtests flag questions with no good fit |
-| Age behaviors put people in the wrong band | Accepted for the mystery; Claude treats age as approximate; kid options are hard to pick for adults, so the age rules stay safe |
-| 10 questions isn't enough signal | Fixed openers cover the big three; persona tests measure pick quality at 5, 7 and 10 questions |
+| Age behaviors put people in the wrong band | Accepted for the mystery; Claude treats age as approximate; adults only, so there are no kid or teen bands to land in by mistake |
+| 12 questions isn't enough signal | Fixed openers cover the big three; persona tests measure pick quality at 5, 8 and 12 questions |
 | The bank misses what matters for some people | Persona playtests to find gaps; drop-off analytics; adding a question is a code change with no prompt rewrite |
 | Claude picks an ineligible ID or fails | ID validation + one retry + priority fallback, so question turns can't break |
 | Picks ignore the budget or occasion | Explicit prompt rules, plus playtest checks that every `priceRange` fits and picks suit the occasion |

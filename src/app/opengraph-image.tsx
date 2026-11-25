@@ -2,7 +2,7 @@ import { ImageResponse } from "next/og";
 import { copy } from "@/lib/copy";
 import { OG_SIZE, OgFrame, ogFonts } from "./og";
 
-export const alt = "giftd: Find their gift.";
+export const alt = "giftd: Find their gift";
 export const size = OG_SIZE;
 export const contentType = "image/png";
 

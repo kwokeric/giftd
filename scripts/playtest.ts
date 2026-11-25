@@ -196,7 +196,7 @@ async function main() {
     console.log(`#${i + 1} [${p.occasion}] ${p.who}`);
     console.log(`   plan: ${log.plan.join(", ")}`);
     console.log(`   asked (${log.questionCount}): ${log.asked.join(" → ")}`);
-    for (const g of log.gifts) console.log(`   ${g.kind.padEnd(8)} ${g.name} · ${g.priceRange} · ${g.category}\n            "${g.why}"`);
+    for (const g of log.gifts) console.log(`   ${g.kind.padEnd(8)} ${g.name} · ${g.priceRange} · ${g.category}`);
     if (log.overBudget.length) console.log(`   ⚠ over budget: ${log.overBudget.join(", ")}`);
     if (log.warnings.length) console.log(`   ⚠ ${log.warnings.join(" | ")}`);
     if (log.error) console.log(`   ✗ ${log.error}`);

@@ -2,7 +2,7 @@
 // Specific and relatable, PG, no memes or slang. See "giftd — Question Bank.md" → Voice.
 
 export const copy = {
-  tagline: "Find their gift.",
+  tagline: "Find their gift",
   occasionPrompt: "What's the occasion?",
   start: "Find a gift",
   progress: (index: number, total: number) => `${index} of ${total}`,
