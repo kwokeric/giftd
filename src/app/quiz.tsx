@@ -10,7 +10,7 @@ import { MAX_ANSWERS, nextPlanned, planSequence } from "@/lib/plan-walk";
 import { OCCASIONS } from "@/lib/types";
 import type { Answer, Occasion, PublicQuestion, Relationship } from "@/lib/types";
 import { PhraseLoader } from "./loaders";
-import { ArrowIcon, BackIcon, CheckIcon, GiftCard, GiftTiles, Header, Pill, SCREEN, ShareIcon } from "./ui";
+import { ArrowIcon, BackIcon, ChatIcon, CheckIcon, GiftCard, GiftIcon, GiftTiles, Header, Pill, SCREEN, ShareIcon } from "./ui";
 
 type View =
   | { kind: "landing" }
@@ -77,6 +77,10 @@ async function shareLink(url: string, text: string): Promise<"shared" | "copied"
 // ---------------------------------------------------------------------------
 
 const STORAGE_KEY = "giftd:quiz";
+
+/** The buttons at the end of the results all look alike. */
+const endButton =
+  "glass flex min-h-13 w-full items-center justify-center gap-2 rounded-[20px] px-4 text-[15px] font-extrabold disabled:opacity-60";
 
 type Saved = {
   v: 3;
@@ -582,33 +586,28 @@ function QuizFlow({ openers, saved }: { openers: PublicQuestion[]; saved: Saved 
               />
             ))}
           </GiftTiles>
-          <div className="mt-5 flex flex-col items-center gap-1">
+          {/* Three ways to pass it on, styled alike: the picks, the quiz for this person, the app itself. */}
+          <div className="mt-5 flex flex-col gap-2.5">
             <button
               onClick={() => void shareResult()}
               disabled={shareStatus === "busy" || view.rerolling !== null}
-              className="glass flex min-h-13 w-full items-center justify-center gap-2 rounded-[20px] text-base font-extrabold disabled:opacity-60"
+              className={endButton}
             >
               <ShareIcon />
               {shareStatus === "busy" ? copy.sharing : copy.share}
             </button>
-            <button onClick={() => void askHelp()} className="min-h-11 px-4 text-sm font-semibold text-muted underline-offset-4 hover:underline">
+            <button onClick={() => void askHelp()} className={endButton}>
+              <ChatIcon />
               {copy.askHelp}
             </button>
-            <p aria-live="polite" className="h-5 text-sm font-semibold text-kicker">
-              {shareStatus === "error" ? copy.shareFailed : notice}
-            </p>
-          </div>
-          {/* Share the app itself, no picks attached: for friends who are just as stuck. */}
-          <div className="glass mt-3 flex items-center justify-between gap-3 rounded-[20px] py-3 pr-3 pl-4">
-            <p className="text-sm font-semibold">{copy.shareAppPrompt}</p>
-            <button
-              onClick={() => void shareApp()}
-              className="inline-flex min-h-10 shrink-0 items-center gap-1.5 rounded-full bg-solid px-4 text-sm font-extrabold text-solid-fg"
-            >
-              <ShareIcon />
+            <button onClick={() => void shareApp()} className={endButton}>
+              <GiftIcon />
               {copy.shareApp}
             </button>
           </div>
+          <p aria-live="polite" className="mt-2 h-5 text-center text-sm font-semibold text-kicker">
+            {shareStatus === "error" ? copy.shareFailed : notice}
+          </p>
         </section>
       )}
 
