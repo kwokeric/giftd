@@ -9,6 +9,7 @@ import { impliedAnswer } from "@/lib/implied";
 import { MAX_ANSWERS, nextPlanned, planSequence } from "@/lib/plan-walk";
 import { OCCASIONS } from "@/lib/types";
 import type { Answer, Occasion, PublicQuestion, Relationship } from "@/lib/types";
+import { PhraseLoader } from "./loaders";
 import { ArrowIcon, BackIcon, CheckIcon, GiftCard, Header, Pill, SCREEN, ShareIcon } from "./ui";
 
 type View =
@@ -19,8 +20,8 @@ type View =
       index: number;
       pickedId?: string;
       busy?: boolean;
-      /** Already-known next question, shown once the unpicked answers have left. */
-      then?: { question: PublicQuestion; index: number; afterMs: number };
+      /** The next screen, shown once the unpicked answers have left. */
+      then?: { next: View; afterMs: number };
     }
   | { kind: "thinking" }
   | {
@@ -173,7 +174,7 @@ function QuizFlow({ openers, saved }: { openers: PublicQuestion[]; saved: Saved 
   const then = view.kind === "question" ? view.then : undefined;
   useEffect(() => {
     if (!then) return;
-    const t = setTimeout(() => setView({ kind: "question", question: then.question, index: then.index }), then.afterMs);
+    const t = setTimeout(() => setView(then.next), then.afterMs);
     return () => clearTimeout(t);
   }, [then]);
 
@@ -224,7 +225,7 @@ function QuizFlow({ openers, saved }: { openers: PublicQuestion[]; saved: Saved 
     const key = planKey(occasion, next);
     const first = planState?.key === key && planState.steps ? nextPlanned(planState.steps, next) : null;
     if (first) {
-      setView({ ...current, pickedId, busy: true, then: { question: first, index: next.length + 1, afterMs } });
+      setView({ ...current, pickedId, busy: true, then: { next: { kind: "question", question: first, index: next.length + 1 }, afterMs } });
       return;
     }
     requestPlan(next);
@@ -303,11 +304,12 @@ function QuizFlow({ openers, saved }: { openers: PublicQuestion[]; saved: Saved 
     if (next.length === openers.length) return afterBudget(view, next, optionId, afterMs);
     const upcoming = next.length < openers.length ? openers[next.length] : plan ? nextPlanned(plan, next) : null;
     if (upcoming) {
-      setView({ ...view, pickedId: optionId, busy: true, then: { question: upcoming, index: next.length + 1, afterMs } });
+      setView({ ...view, pickedId: optionId, busy: true, then: { next: { kind: "question", question: upcoming, index: next.length + 1 }, afterMs } });
       return;
     }
-    // Last planned question: pick the gifts. The pick stays on screen, gently pulsing, meanwhile.
-    setView({ ...view, pickedId: optionId, busy: true });
+    // Last planned question: pick the gifts. The answers leave as usual, then the status lines
+    // run until the gifts arrive (if they arrive first, they replace this screen directly).
+    setView({ ...view, pickedId: optionId, busy: true, then: { next: { kind: "thinking" }, afterMs } });
     void fetchResult(next);
   }
 
@@ -482,7 +484,7 @@ function QuizFlow({ openers, saved }: { openers: PublicQuestion[]; saved: Saved 
             {view.question.text}
           </h1>
           <div className={`mt-auto flex flex-col pt-8 ${compact ? "gap-2" : "gap-3"}`}>
-            {options.map((o) => {
+            {options.map((o, i) => {
               const on = view.pickedId === o.id;
               // After a pick, the other answers leave one after another, top to bottom.
               const leaveOrder = options.filter((x) => x.id !== view.pickedId).findIndex((x) => x.id === o.id);
@@ -495,8 +497,14 @@ function QuizFlow({ openers, saved }: { openers: PublicQuestion[]; saved: Saved 
                     compact ? "min-h-[52px] py-2 text-base" : "min-h-16 py-3 text-lg"
                   } ${
                     on ? "border border-transparent bg-solid font-semibold text-solid-fg" : "glass font-semibold"
-                  } ${view.busy ? (on ? "answer-wait" : "answer-leave") : ""}`}
-                  style={view.busy && !on ? ({ "--i": leaveOrder, "--step": `${leaveStep(options.length - 1)}ms` } as CSSProperties) : undefined}
+                  } ${view.busy ? (on ? "answer-wait" : "answer-leave") : "answer-enter"}`}
+                  style={
+                    view.busy
+                      ? on
+                        ? undefined
+                        : ({ "--i": leaveOrder, "--step": `${leaveStep(options.length - 1)}ms` } as CSSProperties)
+                      : ({ "--i": i } as CSSProperties)
+                  }
                 >
                   {o.label}
                   {/* Always takes its space, so picking an answer never re-wraps the text */}
@@ -519,7 +527,10 @@ function QuizFlow({ openers, saved }: { openers: PublicQuestion[]; saved: Saved 
       {view.kind === "thinking" && (
         <section className="fade-in flex flex-1 flex-col">
           <Header />
-          <p aria-live="polite" className="m-auto animate-pulse text-lg font-semibold text-muted">
+          <div className="m-auto">
+            <PhraseLoader />
+          </div>
+          <p aria-live="polite" className="sr-only">
             {copy.thinking}
           </p>
         </section>

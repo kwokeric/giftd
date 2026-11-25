@@ -2,6 +2,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { copy } from "@/lib/copy";
+import { RingLoader } from "./loaders";
 import type { Gift } from "@/lib/schemas";
 
 const AMAZON_TAG = process.env.NEXT_PUBLIC_AMAZON_TAG;
@@ -12,7 +13,11 @@ export function shopUrl(searchQuery: string): string {
 }
 
 export function Header({ left, right, logoHref }: { left?: ReactNode; right?: ReactNode; logoHref?: string }) {
-  const logo = <span className="text-[26px] font-extrabold tracking-[-0.04em]">giftd</span>;
+  const logo = (
+    <span className="text-[26px] font-extrabold tracking-[-0.04em]">
+      giftd<span className="text-bar">.</span>
+    </span>
+  );
   return (
     <header className="flex items-center justify-between">
       <div className="flex items-center gap-3">
@@ -31,10 +36,14 @@ export function Pill({ children }: { children: ReactNode }) {
 /** A pick: kind, price, name, why, and a row of actions (Shop this is always first). */
 export function GiftCard({ gift, busy, actions, footer }: { gift: Gift; busy?: boolean; actions?: ReactNode; footer?: ReactNode }) {
   return (
-    <article
-      aria-busy={busy}
-      className={`glass fade-in rounded-[22px] px-[18px] py-4 transition-opacity ${busy ? "opacity-60" : ""}`}
-    >
+    <article aria-busy={busy} className="glass fade-in relative rounded-[22px] px-[18px] py-4">
+      {/* While "Not it" finds a replacement, the card dims and the glow ring spins over it. */}
+      {busy && (
+        <div className="fade-in pointer-events-none absolute inset-0 z-10 flex items-center justify-center">
+          <RingLoader />
+        </div>
+      )}
+      <div className={`transition-[opacity,filter] duration-300 ${busy ? "opacity-30 blur-[2px]" : ""}`}>
       <div className="flex justify-between">
         <span className="text-xs font-extrabold tracking-[0.08em] text-kicker uppercase">{copy.kinds[gift.kind]}</span>
         <span className="text-sm font-semibold text-muted">{gift.priceRange}</span>
@@ -53,6 +62,7 @@ export function GiftCard({ gift, busy, actions, footer }: { gift: Gift; busy?: b
         {actions}
       </div>
       {footer}
+      </div>
     </article>
   );
 }
