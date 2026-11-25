@@ -409,6 +409,11 @@ function QuizFlow({ openers, saved }: { openers: PublicQuestion[]; saved: Saved 
     if (outcome === "copied") flash(copy.askHelpCopied);
   }
 
+  async function shareApp() {
+    const outcome = await shareLink(`${window.location.origin}/`, copy.shareAppText);
+    if (outcome === "copied") flash(copy.shareAppCopied);
+  }
+
   function restart() {
     writeSaved(null);
     setAnswers([]);
@@ -496,8 +501,8 @@ function QuizFlow({ openers, saved }: { openers: PublicQuestion[]; saved: Saved 
                   key={o.id}
                   onClick={() => answer(view.question.id, o.id)}
                   disabled={view.busy}
-                  className={`flex items-center justify-between gap-3 rounded-[20px] px-[22px] text-left transition ${
-                    compact ? "min-h-[52px] py-2 text-base" : "min-h-16 py-3 text-lg"
+                  className={`flex items-center justify-between gap-3 rounded-[20px] px-[22px] text-left text-base transition ${
+                    compact ? "min-h-[52px] py-2" : "min-h-16 py-3"
                   } ${
                     on ? "border border-transparent bg-solid font-semibold text-solid-fg" : "glass font-semibold"
                   } ${view.busy ? (on ? "answer-wait" : "answer-leave") : "answer-enter"}`}
@@ -511,7 +516,7 @@ function QuizFlow({ openers, saved }: { openers: PublicQuestion[]; saved: Saved 
                 >
                   <span className="flex items-center gap-3">
                     {o.emoji && (
-                      <span aria-hidden="true" className={`w-7 shrink-0 text-center leading-none ${compact ? "text-xl" : "text-2xl"}`}>
+                      <span aria-hidden="true" className="w-7 shrink-0 text-center text-xl leading-none">
                         {o.emoji}
                       </span>
                     )}
@@ -592,6 +597,17 @@ function QuizFlow({ openers, saved }: { openers: PublicQuestion[]; saved: Saved 
             <p aria-live="polite" className="h-5 text-sm font-semibold text-kicker">
               {shareStatus === "error" ? copy.shareFailed : notice}
             </p>
+          </div>
+          {/* Share the app itself, no picks attached: for friends who are just as stuck. */}
+          <div className="glass mt-3 flex items-center justify-between gap-3 rounded-[20px] py-3 pr-3 pl-4">
+            <p className="text-sm font-semibold">{copy.shareAppPrompt}</p>
+            <button
+              onClick={() => void shareApp()}
+              className="inline-flex min-h-10 shrink-0 items-center gap-1.5 rounded-full bg-solid px-4 text-sm font-extrabold text-solid-fg"
+            >
+              <ShareIcon />
+              {copy.shareApp}
+            </button>
           </div>
         </section>
       )}

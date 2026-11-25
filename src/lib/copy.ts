@@ -31,6 +31,11 @@ export const copy = {
   askHelp: "Ask someone who knows them better",
   askHelpText: "Help me pick a gift? It's a few taps about them.",
   askHelpCopied: "Quiz link copied",
+  // Sharing the app itself, no results attached
+  shareAppPrompt: "Know someone who's bad at gifts?",
+  shareApp: "Share giftd",
+  shareAppText: "Bad at gifting? This finds the gift in a few taps.",
+  shareAppCopied: "Link copied. Spread the word",
   helpBanner: "Someone wants your help picking a gift.",
 
   // Shared result page (/r/[id])
