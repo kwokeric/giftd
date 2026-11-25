@@ -3,6 +3,7 @@ import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 import type { z } from "zod";
 import { eligible, fallbackQuestion, validateAnswers } from "./eligibility";
 import { SYSTEM_PROMPT, buildRerollMessage, buildTurnMessage } from "./prompt";
+import { signGift } from "./sign";
 import { Gift, ResultSchema, askSchema, eitherSchema } from "./schemas";
 import type { GiftKind, TurnRequest, TurnResponse } from "./schemas";
 import type { Question } from "./types";
@@ -95,11 +96,15 @@ function questionResponse(q: Question, index: number): TurnResponse {
 
 const newResultId = () => crypto.randomUUID().replace(/-/g, "").slice(0, 12);
 
+function resultResponse(gifts: Gift[]): TurnResponse {
+  return { type: "result", resultId: newResultId(), gifts: gifts.map((g) => ({ ...g, sig: signGift(g) })) };
+}
+
 async function resultTurn(ctx: Ctx, message: string, expectedKinds: GiftKind[], avoid: string[]): Promise<TurnResponse> {
   for (let i = 0; i < ATTEMPTS; i++) {
     const out = await callModel(ctx, "result", ResultSchema, message);
     const gifts = out && cleanGifts(out.gifts, expectedKinds, avoid);
-    if (gifts) return { type: "result", resultId: newResultId(), gifts };
+    if (gifts) return resultResponse(gifts);
     ctx.hooks?.onWarn?.(`result attempt ${i + 1} was invalid`);
   }
   throw new TurnError(502, "Couldn't come up with gifts right now");
@@ -155,7 +160,7 @@ export async function runTurn(req: TurnRequest, ctx: Ctx): Promise<TurnResponse>
 
     if (out.action === "result" && allowed === "either") {
       const gifts = cleanGifts(out.gifts, allKinds, rejected);
-      if (gifts) return { type: "result", resultId: newResultId(), gifts };
+      if (gifts) return resultResponse(gifts);
       ctx.hooks?.onWarn?.("inline result was invalid");
     }
   }

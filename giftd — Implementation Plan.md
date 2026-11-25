@@ -263,11 +263,11 @@ Four phases. Each phase ends with something you can play.
 
 **Phase 3 — Shareability**
 
-- [ ] `/api/share` stores `{ occasion, answers summary, gifts }` in Redis under a `nanoid(8)` with a 90-day TTL; result page at `/r/[id]`
-- [ ] OG image of the result card with `@vercel/og`
-- [ ] "Send this quiz to someone who knows them better" link (a fresh quiz with occasion and relationship prefilled)
-- [ ] Copy pass: all microcopy in `src/lib/copy.ts` in the playful voice
-- [ ] Landing page: occasion picker + one big Start button
+- [x] `/api/share` stores `{ occasion, relationship, answers, gifts }` in Redis under a `nanoid(8)` with a 90-day TTL; result page at `/r/[id]`. Gifts are signed (HMAC) when generated, so shares can only contain real giftd picks. Needs `GIFTD_SHARE_SECRET` and Upstash env vars in production; in-memory store in development
+- [x] OG images with `next/og`: the shared result card, plus a default one for the home page (Manrope, Glow look)
+- [x] "Ask someone who knows them better" link: a fresh quiz with the occasion prefilled and a "Someone wants your help" line. Relationship is not prefilled, because it's relative to the person answering (my dad is my mom's partner)
+- [x] Copy pass: all microcopy in `src/lib/copy.ts` in the playful voice
+- [x] Landing page: occasion picker + one big Start button
 
 *Lowest priority if something has to give: "send to someone" → OG image. Keep the basic share link.*
 

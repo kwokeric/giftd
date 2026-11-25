@@ -8,7 +8,15 @@ const manrope = Manrope({
   weight: ["500", "600", "700", "800"],
 });
 
+// Link previews need absolute image URLs. Vercel sets VERCEL_PROJECT_PRODUCTION_URL for us.
+const siteUrl =
+  process.env.NEXT_PUBLIC_SITE_URL ||
+  (process.env.VERCEL_PROJECT_PRODUCTION_URL
+    ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
+    : "http://localhost:3000");
+
 export const metadata: Metadata = {
+  metadataBase: new URL(siteUrl),
   title: "giftd",
   description: "Find their gift.",
 };

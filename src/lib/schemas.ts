@@ -65,6 +65,10 @@ export const Gift = z.object({
 });
 export type Gift = z.infer<typeof Gift>;
 
+/** A gift as the server returns it: `sig` proves giftd generated it (see sign.ts). */
+export const SignedGift = Gift.extend({ sig: z.string().max(64).optional() });
+export type SignedGift = z.infer<typeof SignedGift>;
+
 export const Occasion = z.enum(OCCASIONS);
 
 export const AnswerSchema = z.object({
@@ -92,7 +96,14 @@ export type TurnResponse =
       question: { id: string; text: string; options: { id: string; label: string }[] };
       index: number; // 4–10, for the progress bar
     }
-  | { type: "result"; resultId: string; gifts: Gift[] };
+  | { type: "result"; resultId: string; gifts: SignedGift[] };
+
+export const ShareRequest = z.object({
+  occasion: Occasion,
+  answers: z.array(AnswerSchema).max(10),
+  gifts: z.array(SignedGift).length(3),
+});
+export type ShareRequest = z.infer<typeof ShareRequest>;
 
 // --- What Claude returns (per-turn schemas; see turn.ts) ---------------------
 

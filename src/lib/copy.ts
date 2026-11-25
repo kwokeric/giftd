@@ -21,6 +21,32 @@ export const copy = {
   restart: "Start over",
   back: "Back",
   retry: "Try again",
+
+  // Sharing
+  share: "Share these picks",
+  sharing: "Making a link…",
+  shareCopied: "Link copied",
+  shareFailed: "Couldn't make a link. Try again?",
+  shareText: "Gift ideas from giftd",
+  askHelp: "Ask someone who knows them better",
+  askHelpText: "Help me pick a gift? It's a few taps about them.",
+  askHelpCopied: "Quiz link copied",
+  helpBanner: "Someone wants your help picking a gift.",
+
+  // Shared result page (/r/[id])
+  recipient: {
+    partner: "a partner",
+    relative: "a relative",
+    friend: "a friend",
+    coworker: "a coworker",
+    other: "someone special",
+  },
+  sharedTitle: (recipient: string) => `Gift ideas for ${recipient}`,
+  sharedLoading: "Unwrapping…",
+  sharedCta: "Find a gift for someone else",
+  notFoundTitle: "This gift list has expired",
+  notFoundBody: "Shared picks last 90 days. That's longer than most gift receipts.",
+  notFoundCta: "Find a gift",
   errors: {
     rateLimited: "That's a lot of gift shopping. Take a breather and try again in a bit.",
     failed: "Our gift brain froze for a second. Try again?",

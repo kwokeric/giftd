@@ -1,11 +1,12 @@
 "use client";
 
 import { useEffect, useState, useSyncExternalStore } from "react";
-import type { ReactNode } from "react";
 import { copy } from "@/lib/copy";
 import { OCCASION_OPTIONS, defaultOccasion } from "@/lib/occasion";
-import type { Gift, GiftKind, TurnResponse } from "@/lib/schemas";
+import type { GiftKind, SignedGift, TurnResponse } from "@/lib/schemas";
+import { OCCASIONS } from "@/lib/types";
 import type { Answer, Occasion, PublicQuestion, Relationship } from "@/lib/types";
+import { ArrowIcon, BackIcon, CheckIcon, GiftCard, Header, Pill, ShareIcon } from "./ui";
 
 type View =
   | { kind: "landing" }
@@ -14,20 +15,16 @@ type View =
   | {
       kind: "result";
       resultId: string;
-      gifts: Gift[];
+      gifts: SignedGift[];
       rejected: string[];
       rerolling: GiftKind | null;
       rerollError: GiftKind | null;
+      /** Share link id for these exact gifts; cleared when a gift is swapped. */
+      shareId: string | null;
     }
   | { kind: "error"; message: string; answers: Answer[] };
 
-const AMAZON_TAG = process.env.NEXT_PUBLIC_AMAZON_TAG;
 const MAX_QUESTIONS = 10;
-
-function shopUrl(searchQuery: string): string {
-  const tag = AMAZON_TAG ? `&tag=${encodeURIComponent(AMAZON_TAG)}` : "";
-  return `https://www.amazon.com/s?k=${encodeURIComponent(searchQuery)}${tag}`;
-}
 
 function errorMessage(status: number): string {
   if (status === 429) return copy.errors.rateLimited;
@@ -36,6 +33,33 @@ function errorMessage(status: number): string {
 }
 
 const noopSubscribe = () => () => {};
+
+/** `/?occasion=wedding&help=1` is the "ask someone who knows them better" link. Client-only. */
+function urlParam(name: string): string | null {
+  return new URLSearchParams(window.location.search).get(name);
+}
+const urlOccasion = (): Occasion | null => {
+  const o = urlParam("occasion");
+  return (OCCASIONS as readonly string[]).includes(o ?? "") ? (o as Occasion) : null;
+};
+
+/** Native share sheet when there is one (phones), otherwise copy to the clipboard. */
+async function shareLink(url: string, text: string): Promise<"shared" | "copied" | "cancelled" | "failed"> {
+  if (navigator.share) {
+    try {
+      await navigator.share({ text, url });
+      return "shared";
+    } catch (err) {
+      if (err instanceof DOMException && err.name === "AbortError") return "cancelled";
+    }
+  }
+  try {
+    await navigator.clipboard.writeText(url);
+    return "copied";
+  } catch {
+    return "failed";
+  }
+}
 
 // ---------------------------------------------------------------------------
 // Progress is saved to sessionStorage so a refresh (or a quick trip to Amazon) doesn't
@@ -91,9 +115,12 @@ export default function Quiz({ openers }: { openers: PublicQuestion[] }) {
 
 function QuizFlow({ openers, saved }: { openers: PublicQuestion[]; saved: Saved | null }) {
   // The calendar default is also client-only (null on the server).
-  const calendarDefault = useSyncExternalStore(noopSubscribe, () => defaultOccasion(), () => null);
+  const calendarDefault = useSyncExternalStore(noopSubscribe, () => urlOccasion() ?? defaultOccasion(), () => null);
+  const askedForHelp = useSyncExternalStore(noopSubscribe, () => urlParam("help") === "1", () => false);
   const [picked, setPicked] = useState<Occasion | null>(saved?.occasion ?? null);
   const occasion: Occasion = picked ?? calendarDefault ?? "birthday";
+  const [shareStatus, setShareStatus] = useState<"idle" | "busy" | "error">("idle");
+  const [notice, setNotice] = useState<string | null>(null);
   const [answers, setAnswers] = useState<Answer[]>(saved?.answers ?? []);
   const [history, setHistory] = useState<PublicQuestion[]>(saved?.history ?? []);
   const [view, setView] = useState<View>(saved?.view ?? { kind: "landing" });
@@ -128,7 +155,15 @@ function QuizFlow({ openers, saved }: { openers: PublicQuestion[]; saved: Saved 
     } else if (data.type === "question") {
       setView({ kind: "question", question: data.question, index: data.index });
     } else {
-      setView({ kind: "result", resultId: data.resultId, gifts: data.gifts, rejected: [], rerolling: null, rerollError: null });
+      setView({
+        kind: "result",
+        resultId: data.resultId,
+        gifts: data.gifts,
+        rejected: [],
+        rerolling: null,
+        rerollError: null,
+        shareId: null,
+      });
     }
   }
 
@@ -198,7 +233,45 @@ function QuizFlow({ openers, saved }: { openers: PublicQuestion[]; saved: Saved 
       rejected,
       rerolling: null,
       rerollError: null,
+      shareId: null,
     });
+  }
+
+  function flash(message: string) {
+    setNotice(message);
+    setTimeout(() => setNotice((n) => (n === message ? null : n)), 2500);
+  }
+
+  async function shareResult() {
+    if (view.kind !== "result" || shareStatus === "busy") return;
+    const current = view;
+    let id = current.shareId;
+    if (!id) {
+      setShareStatus("busy");
+      try {
+        const res = await fetch("/api/share", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ occasion, answers, gifts: current.gifts }),
+        });
+        if (!res.ok) throw new Error(String(res.status));
+        id = ((await res.json()) as { id: string }).id;
+      } catch {
+        setShareStatus("error");
+        return;
+      }
+      setShareStatus("idle");
+      const newId = id;
+      setView((v) => (v.kind === "result" && v.resultId === current.resultId ? { ...v, shareId: newId } : v));
+    }
+    const outcome = await shareLink(`${window.location.origin}/r/${id}`, copy.shareText);
+    if (outcome === "copied") flash(copy.shareCopied);
+    if (outcome === "failed") setShareStatus("error");
+  }
+
+  async function askHelp() {
+    const outcome = await shareLink(`${window.location.origin}/?occasion=${occasion}&help=1`, copy.askHelpText);
+    if (outcome === "copied") flash(copy.askHelpCopied);
   }
 
   function restart() {
@@ -213,7 +286,14 @@ function QuizFlow({ openers, saved }: { openers: PublicQuestion[]; saved: Saved 
       {view.kind === "landing" && (
         <section className="fade-in flex flex-1 flex-col">
           <Header />
-          <h1 className="mt-24 text-[56px] leading-[0.98] font-extrabold tracking-[-0.045em]">{copy.tagline}</h1>
+          {askedForHelp ? (
+            <p className="mt-16 text-base font-bold text-kicker">{copy.helpBanner}</p>
+          ) : null}
+          <h1
+            className={`${askedForHelp ? "mt-3" : "mt-24"} text-[56px] leading-[0.98] font-extrabold tracking-[-0.045em]`}
+          >
+            {copy.tagline}
+          </h1>
           <p className="mt-11 text-sm font-semibold text-muted">{copy.occasionPrompt}</p>
           <div className="mt-3.5 flex flex-wrap gap-2">
             {OCCASION_OPTIONS.map((o) => {
@@ -322,42 +402,45 @@ function QuizFlow({ openers, saved }: { openers: PublicQuestion[]; saved: Saved 
             {view.gifts.map((g) => {
               const rerolling = view.rerolling === g.kind;
               return (
-                <article
+                <GiftCard
                   key={g.kind}
-                  aria-busy={rerolling}
-                  className={`glass fade-in rounded-[22px] px-[18px] py-4 transition-opacity ${rerolling ? "opacity-60" : ""}`}
-                >
-                  <div className="flex justify-between">
-                    <span className="text-xs font-extrabold tracking-[0.08em] text-kicker uppercase">{copy.kinds[g.kind]}</span>
-                    <span className="text-sm font-semibold text-muted">{g.priceRange}</span>
-                  </div>
-                  <h2 className="mt-1.5 text-[19px] font-extrabold tracking-[-0.02em]">{g.name}</h2>
-                  <p className="mt-1.5 mb-3 text-sm leading-[1.4] text-body">{g.why}</p>
-                  <div className="flex gap-2">
-                    <a
-                      href={shopUrl(g.searchQuery)}
-                      target="_blank"
-                      rel="noopener noreferrer sponsored"
-                      className="inline-flex min-h-11 items-center rounded-full bg-solid px-[18px] text-[15px] font-extrabold text-solid-fg"
-                    >
-                      {copy.shop}
-                    </a>
+                  gift={g}
+                  busy={rerolling}
+                  actions={
                     <button
                       onClick={() => void notIt(g.kind)}
-                      disabled={view.rerolling !== null}
+                      disabled={view.rerolling !== null || shareStatus === "busy"}
                       className="inline-flex min-h-11 items-center rounded-full border border-outline px-4 text-[15px] font-semibold disabled:opacity-60"
                     >
                       {rerolling ? copy.findingAnother : copy.notIt}
                     </button>
-                  </div>
-                  {view.rerollError === g.kind && (
-                    <p role="alert" className="mt-2 text-sm font-semibold text-kicker">
-                      {copy.rerollFailed}
-                    </p>
-                  )}
-                </article>
+                  }
+                  footer={
+                    view.rerollError === g.kind && (
+                      <p role="alert" className="mt-2 text-sm font-semibold text-kicker">
+                        {copy.rerollFailed}
+                      </p>
+                    )
+                  }
+                />
               );
             })}
+          </div>
+          <div className="mt-5 flex flex-col items-center gap-1">
+            <button
+              onClick={() => void shareResult()}
+              disabled={shareStatus === "busy" || view.rerolling !== null}
+              className="glass flex min-h-13 w-full items-center justify-center gap-2 rounded-[20px] text-base font-extrabold disabled:opacity-60"
+            >
+              <ShareIcon />
+              {shareStatus === "busy" ? copy.sharing : copy.share}
+            </button>
+            <button onClick={() => void askHelp()} className="min-h-11 px-4 text-sm font-semibold text-muted underline-offset-4 hover:underline">
+              {copy.askHelp}
+            </button>
+            <p aria-live="polite" className="h-5 text-sm font-semibold text-kicker">
+              {shareStatus === "error" ? copy.shareFailed : notice}
+            </p>
           </div>
         </section>
       )}
@@ -385,30 +468,6 @@ function QuizFlow({ openers, saved }: { openers: PublicQuestion[]; saved: Saved 
   );
 }
 
-function Header({ left, right }: { left?: ReactNode; right?: ReactNode }) {
-  return (
-    <header className="flex items-center justify-between">
-      <div className="flex items-center gap-3">
-        {left}
-        <span className="text-[26px] font-extrabold tracking-[-0.04em]">giftd</span>
-      </div>
-      {right}
-    </header>
-  );
-}
-
-function BackIcon() {
-  return (
-    <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M19 12H5M11 6l-6 6 6 6" />
-    </svg>
-  );
-}
-
-function Pill({ children }: { children: ReactNode }) {
-  return <span className="glass rounded-full px-3.5 py-2 text-sm font-semibold">{children}</span>;
-}
-
 function Progress({ index }: { index: number }) {
   return (
     <div
@@ -421,21 +480,5 @@ function Progress({ index }: { index: number }) {
     >
       <div className="h-full rounded-full bg-bar transition-[width] duration-300" style={{ width: `${(index / MAX_QUESTIONS) * 100}%` }} />
     </div>
-  );
-}
-
-function CheckIcon() {
-  return (
-    <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
-      <path d="M5 12l5 5L20 7" />
-    </svg>
-  );
-}
-
-function ArrowIcon() {
-  return (
-    <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M5 12h14M13 6l6 6-6 6" />
-    </svg>
   );
 }
