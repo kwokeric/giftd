@@ -158,7 +158,10 @@ export function GiftCard({
             rel="noopener noreferrer sponsored"
             className={`inline-flex items-center justify-center rounded-full bg-white font-extrabold text-[#120e24] ${big ? "min-h-11 px-[18px] text-[15px]" : "min-h-10 flex-1 px-3 text-sm"}`}
           >
-            {big ? copy.shop : copy.shopShort}
+            <span className="flex items-center gap-1.5">
+              {copy.shop}
+              <ExternalIcon />
+            </span>
           </a>
           {onNotIt && (
             <button
@@ -180,6 +183,14 @@ export function GiftCard({
         </div>
       </div>
     </article>
+  );
+}
+
+function ExternalIcon() {
+  return (
+    <svg aria-hidden="true" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M14 4h6v6M20 4l-9 9M18 14v4a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4" />
+    </svg>
   );
 }
 

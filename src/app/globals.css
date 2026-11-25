@@ -17,7 +17,7 @@
   --solid-fg: #120e24;
   --outline: rgba(255, 255, 255, 0.25);
   --track: rgba(255, 255, 255, 0.14);
-  --bar: #ff8cc6;
+  --bar: #3fd0ff; /* teal from the cyan orb: progress bar, logo dot */
   --orb-1: #ff4fa3;
   --orb-1-opacity: 0.5;
   --orb-2: #6a5cff;
@@ -40,7 +40,7 @@
     --solid-fg: #ffffff;
     --outline: rgba(27, 21, 48, 0.2);
     --track: rgba(27, 21, 48, 0.12);
-    --bar: #6d4aff;
+    --bar: #0891b2;
     --orb-1: #ff9cc9;
     --orb-1-opacity: 0.7;
     --orb-2: #a99bff;

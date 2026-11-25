@@ -37,7 +37,7 @@ export function OgFrame({ children }: { children: ReactNode }) {
       }}
     >
       <div style={{ display: "flex", fontSize: 44, fontWeight: 800, letterSpacing: "-0.04em" }}>
-        giftd<span style={{ color: "#ff8cc6" }}>.</span>
+        giftd<span style={{ color: "#3fd0ff" }}>.</span>
       </div>
       {children}
     </div>
