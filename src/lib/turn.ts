@@ -102,15 +102,19 @@ async function resultTurn(ctx: Ctx, message: string, expectedKinds: GiftKind[], 
   throw new TurnError(502, "Couldn't come up with gifts right now");
 }
 
+/** Openers the plan is made from: all but the last one (the budget). */
+const PLAN_OPENER_COUNT = OPENER_IDS.length - 1;
+
 export async function runTurn(req: TurnRequest, ctx: Ctx): Promise<TurnResponse> {
   const { occasion, answers } = req;
-  const invalid = validateAnswers(occasion, answers);
+  const invalid = validateAnswers(occasion, answers, req.mode === "plan" ? PLAN_OPENER_COUNT : undefined);
   if (invalid) throw new TurnError(400, invalid);
   const rejected = req.rejected ?? [];
   const allKinds: GiftKind[] = ["safe", "wildcard", "budget"];
 
   if (req.mode === "plan") {
-    if (answers.length !== OPENER_IDS.length) throw new TurnError(400, "plan comes right after the openers");
+    // Planned from who and age only, so the call can run while the user picks a budget.
+    if (answers.length !== PLAN_OPENER_COUNT) throw new TurnError(400, "plan comes right after who and age");
     const candidates = eligible(occasion, answers);
     let picked: string[] = [];
     if (candidates.length > 0) {

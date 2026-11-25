@@ -64,11 +64,12 @@ export function fallbackQuestion(candidates: Question[]): Question | undefined {
 /**
  * Checks a client-supplied answer list: openers first and in order, real question/option IDs,
  * no repeats, and every bank question was actually eligible when it was asked.
- * Returns an error message, or null when valid.
+ * Returns an error message, or null when valid. `openers` is how many openers must be there
+ * (planning only needs who and age).
  */
-export function validateAnswers(occasion: Occasion, answers: Answer[]): string | null {
-  if (answers.length < OPENER_IDS.length) return "answers must include the 3 openers";
-  for (let i = 0; i < OPENER_IDS.length; i++) {
+export function validateAnswers(occasion: Occasion, answers: Answer[], openers = OPENER_IDS.length): string | null {
+  if (answers.length < openers) return `answers must start with the first ${openers} openers`;
+  for (let i = 0; i < Math.min(answers.length, OPENER_IDS.length); i++) {
     if (answers[i].questionId !== OPENER_IDS[i]) return `answer ${i + 1} must be "${OPENER_IDS[i]}"`;
   }
   const seen = new Set<string>();

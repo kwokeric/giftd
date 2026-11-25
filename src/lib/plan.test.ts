@@ -66,6 +66,15 @@ describe("question plan", () => {
     expect(nextPlanned(steps, answers)).toBeNull();
   });
 
+  it("plans from who and age, before the budget is known", () => {
+    const whoAndAge = openers("friend", "20s").slice(0, 2);
+    expect(validateAnswers("birthday", whoAndAge, 2)).toBeNull();
+    expect(validateAnswers("birthday", whoAndAge)).not.toBeNull(); // results still need the budget
+    const steps = buildPlan("birthday", whoAndAge, ["free_time", "pets", "humor"]);
+    const answers = walk(steps, openers("friend", "20s"));
+    expect(validateAnswers("birthday", answers)).toBeNull();
+  });
+
   it("produces answer lists the server accepts, for every occasion shape", () => {
     const cases: [Parameters<typeof buildPlan>[0], Answer[]][] = [
       ["birthday", openers("friend", "20s")],

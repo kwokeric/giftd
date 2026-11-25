@@ -99,9 +99,9 @@ Key properties:
    - "What's the budget?" Under $25 · $25–50 · $50–100 · $100–250 · $250+
 
    The age options are behaviors; the ranges in italics are hidden from users and used only by the server and Claude. Underneath they're still the same age bands, which the eligibility rules depend on. Some ambiguity is intended.
-2. **Q4–Q10 are planned once, then asked with no waiting.** Right after the openers, the client makes one `mode: "plan"` call:
+2. **Q4–Q10 are planned once, then asked with no waiting.** As soon as who and age are answered, the client makes one `mode: "plan"` call in the background, so it loads while the user picks a budget (for Mother's and Father's Day, who and age are implied, so it starts when the quiz opens). The budget doesn't change which questions are worth asking; it only matters for the gifts. If the user changes who or age, the client plans again and ignores the old response.
    1. The server filters the bank down to **eligible** questions: not yet asked, not excluded by an earlier question, and matching the `when` rules (relationship, age, occasion). Follow-ups aren't eligible yet, because their triggering answer hasn't been given.
-   2. Claude sees the occasion, the opening answers and the eligible IDs, and returns 3–6 question IDs, most useful first.
+   2. Claude sees the occasion, who and age, and the eligible IDs, and returns 3–6 question IDs, most useful first.
    3. The server cleans the list (drops ineligible, repeated or mutually excluded picks, tops up from `priority` order if fewer than 3 survive), then attaches each question's **follow-ups**, keyed by the answer that unlocks them (`free_time` → `active` → `active_type`, two levels deep).
    4. The client walks this plan on its own: each planned question, then the follow-ups its answer unlocked, stopping at 10 answers. Facts stay on the server; the plan carries only text and labels.
 3. **Then one `mode: "result"` call** with all the answers (at least 5) returns the 3 gifts. The server re-validates every answer, including that each one was eligible when it was asked.
@@ -121,7 +121,7 @@ type Occasion =
 type TurnRequest = {
   occasion: Occasion;
   answers: Answer[];            // includes the 3 fixed openers; max 10
-  mode: "plan" | "result" | "reroll"; // plan: right after the openers; result: after the last planned question; reroll: replace one pick
+  mode: "plan" | "result" | "reroll"; // plan: from who and age, while the budget is picked; result: after the last planned question; reroll: replace one pick
   rejected?: string[];          // gift names the user said "not it" to; max 10, ≤ 80 chars each
   keep?: Gift[];                // reroll only: the picks to keep
   rerollKind?: Gift["kind"];    // reroll only: which slot to replace

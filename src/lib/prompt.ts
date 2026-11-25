@@ -4,7 +4,7 @@ import { ALL_QUESTIONS, getQuestion } from "./questions";
 import type { Answer, Occasion, Question } from "./types";
 import type { Gift, GiftKind } from "./schemas";
 
-export const PROMPT_VERSION = "p5";
+export const PROMPT_VERSION = "p6";
 
 const OCCASION_LABELS: Record<Occasion, string> = {
   birthday: "a birthday",
@@ -29,10 +29,10 @@ function bankLine(q: Question): string {
 
 // Built once at module load, byte-identical on every call so the prompt cache stays warm.
 // No timestamps or anything per-request in here.
-export const SYSTEM_PROMPT = `You run giftd, a quick quiz that helps someone in the US find a gift for a person in their life. The user answers tap-only multiple-choice questions about the recipient. Many answer labels are jokes; each comes with its plain meaning in parentheses, which is what you should reason from. You do two jobs: plan the questions after the opening three, and later recommend gifts from all the answers.
+export const SYSTEM_PROMPT = `You run giftd, a quick quiz that helps someone in the US find a gift for a person in their life. The user answers tap-only multiple-choice questions about the recipient. Many answer labels are jokes; each comes with its plain meaning in parentheses, which is what you should reason from. You do two jobs: plan the questions from the first few answers, and later recommend gifts from all the answers.
 
 # Planning the questions
-- You see the occasion and the opening answers (who, age, budget), then plan the rest of the quiz in one go. You don't see the answers until the end.
+- You see the occasion and who the gift is for and their age, then plan the rest of the quiz in one go. The budget is asked after you plan, and you don't see any answers until the end.
 - Return ${PLAN_MIN}–${PLAN_MAX} question IDs, only from the eligible IDs listed in the message, most useful first.
 - Pick the questions whose answers would most change which gifts you'd recommend for this person and occasion. Cover different ground (what they're into, personality, gift style) and skip near-duplicates.
 - Questions marked "follow-up" are added automatically after the answer that unlocks them, so they never appear in the eligible list. Planning a question that has follow-ups (like free_time) is a good way to go deep on a topic.

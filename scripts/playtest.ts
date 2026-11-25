@@ -1,6 +1,6 @@
 /**
  * Persona playtest: a second Claude call plays the quiz as someone shopping for each persona.
- * Same flow as the app: one plan call, the planned questions, one result call.
+ * Same flow as the app: who and age, one plan call, the budget, the planned questions, one result call.
  * Logs the plan, questions asked, picks, cost and latency.
  *
  *   npm run playtest                 # all personas
@@ -134,18 +134,18 @@ async function play(p: Persona): Promise<Log> {
     onWarn: (m: string) => log.warnings.push(m),
   };
 
-  for (const q of OPENERS) {
+  const askOpener = async (q: Question) => {
     // Like the app: openers the occasion answers are filled in, not asked.
     const optionId = impliedAnswer(p.occasion, q.id)?.optionId ?? (await personaAnswers(p, q));
     answers.push({ questionId: q.id, optionId });
     log.asked.push(`${q.id}=${optionId}`);
-  }
+  };
 
-  // Same flow as the app: one plan call, walk the plan locally, one result call.
+  // Same flow as the app: plan from who and age, walk the plan locally, one result call.
   const call = async (mode: "plan" | "result"): Promise<TurnResponse | null> => {
     const t0 = Date.now();
     try {
-      return await runTurn({ occasion: p.occasion, answers, mode }, { client, hooks });
+      return await runTurn({ occasion: p.occasion, answers: [...answers], mode }, { client, hooks });
     } catch (err) {
       log.error = String(err);
       return null;
@@ -154,7 +154,11 @@ async function play(p: Persona): Promise<Log> {
     }
   };
 
-  const plan = await call("plan");
+  for (const q of OPENERS.slice(0, -1)) await askOpener(q);
+  // The app sends this while the user picks a budget.
+  const planning = call("plan");
+  await askOpener(OPENERS[OPENERS.length - 1]);
+  const plan = await planning;
   if (plan?.type === "plan") {
     log.plan = plan.steps.map((s) => s.question.id);
     for (let q = nextPlanned(plan.steps, answers); q; q = nextPlanned(plan.steps, answers)) {

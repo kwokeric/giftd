@@ -13,7 +13,15 @@ import { ArrowIcon, BackIcon, CheckIcon, GiftCard, Header, Pill, SCREEN, ShareIc
 
 type View =
   | { kind: "landing" }
-  | { kind: "question"; question: PublicQuestion; index: number; pickedId?: string; busy?: boolean }
+  | {
+      kind: "question";
+      question: PublicQuestion;
+      index: number;
+      pickedId?: string;
+      busy?: boolean;
+      /** Already-known next question, shown once the unpicked answers have left. */
+      then?: { question: PublicQuestion; index: number; afterMs: number };
+    }
   | { kind: "thinking" }
   | {
       kind: "result";
@@ -73,8 +81,10 @@ type Saved = {
   v: 2;
   occasion: Occasion;
   answers: Answer[];
-  /** The questions the AI planned after the openers (null until then). */
+  /** The questions the AI planned from who and age (null until then). */
   plan: PlanStep[] | null;
+  /** Which who/age answers the plan was made for (see planKey). */
+  planKey?: string;
   /** The question shown for each answer, so Back can return to it. */
   history: PublicQuestion[];
   view: Extract<View, { kind: "question" | "result" }>;
@@ -126,17 +136,55 @@ function QuizFlow({ openers, saved }: { openers: PublicQuestion[]; saved: Saved 
   const [notice, setNotice] = useState<string | null>(null);
   const [answers, setAnswers] = useState<Answer[]>(saved?.answers ?? []);
   const [history, setHistory] = useState<PublicQuestion[]>(saved?.history ?? []);
-  const [plan, setPlan] = useState<PlanStep[] | null>(saved?.plan ?? null);
+  // The question plan, keyed by the who/age answers it was made for. It's requested as soon as
+  // those are in, so it loads while the user picks a budget. steps is null while it's on its way.
+  const [planState, setPlanState] = useState<PlanState | null>(
+    saved?.plan && saved.planKey ? { key: saved.planKey, steps: saved.plan } : null,
+  );
+  // Set when the budget is answered before the plan has arrived: show the first planned
+  // question as soon as it lands (but not before the exit animation is done).
+  const [waiting, setWaiting] = useState<{ key: string; answers: Answer[]; afterMs: number; exitDone?: boolean } | null>(
+    null,
+  );
   const [view, setView] = useState<View>(saved?.view ?? { kind: "landing" });
+  const plan = planState && planState.key === planKey(occasion, answers) ? planState.steps : null;
+
+  // Mark the exit animation as played...
+  const waitMs = waiting && !waiting.exitDone ? waiting.afterMs : null;
+  useEffect(() => {
+    if (waitMs === null) return;
+    const t = setTimeout(() => setWaiting((w) => (w ? { ...w, exitDone: true } : w)), waitMs);
+    return () => clearTimeout(t);
+  }, [waitMs]);
+  // ...then move on once the plan is here too.
+  useEffect(() => {
+    if (!waiting?.exitDone || planState?.key !== waiting.key || (!planState.steps && !planState.failed)) return;
+    const { steps, failed } = planState;
+    const t = setTimeout(() => {
+      setWaiting(null);
+      const first = steps && nextPlanned(steps, waiting.answers);
+      if (first) setView({ kind: "question", question: first, index: waiting.answers.length + 1 });
+      // The server never sends an empty plan; if it somehow did, show the retry screen.
+      else setView({ kind: "error", message: failed ? errorMessage(failed) : copy.errors.generic, answers: waiting.answers });
+    });
+    return () => clearTimeout(t);
+  }, [waiting, planState]);
+  // Show the next known question once the exit animation has played.
+  const then = view.kind === "question" ? view.then : undefined;
+  useEffect(() => {
+    if (!then) return;
+    const t = setTimeout(() => setView({ kind: "question", question: then.question, index: then.index }), then.afterMs);
+    return () => clearTimeout(t);
+  }, [then]);
 
   // Saved progress is cleared only by start() and restart(), never here: on first load the fresh
   // landing screen renders before the saved copy is read, and must not wipe it.
   useEffect(() => {
-    if (view.kind === "question" && !view.busy) writeSaved({ v: 2, occasion, answers, plan, history, view });
+    if (view.kind === "question" && !view.busy) writeSaved({ v: 2, occasion, answers, plan, planKey: planState?.key, history, view });
     else if (view.kind === "result") {
-      writeSaved({ v: 2, occasion, answers, plan, history, view: { ...view, rerolling: null, rerollError: null } });
+      writeSaved({ v: 2, occasion, answers, plan, planKey: planState?.key, history, view: { ...view, rerolling: null, rerollError: null } });
     }
-  }, [view, answers, history, plan, occasion]);
+  }, [view, answers, history, plan, planState, occasion]);
 
   async function postTurn(body: object): Promise<TurnResponse | { error: number }> {
     try {
@@ -153,21 +201,43 @@ function QuizFlow({ openers, saved }: { openers: PublicQuestion[]; saved: Saved 
   }
 
   /**
-   * The only two calls in a quiz: right after the openers, plan the questions; after the last
-   * planned question, pick the gifts. Everything in between happens on the phone.
+   * The first of the two calls in a quiz: plan the questions from the occasion, who and age.
+   * Fired as soon as those are in, so it loads while the user picks a budget. Does nothing if
+   * the plan for these answers is already here or on its way.
    */
-  async function fetchTurn(nextAnswers: Answer[]) {
-    const mode = nextAnswers.length === openers.length ? "plan" : "result";
-    const data = await postTurn({ occasion, answers: nextAnswers, mode });
+  function requestPlan(a: Answer[]) {
+    const key = planKey(occasion, a);
+    if (planState?.key === key && !planState.failed) return;
+    setPlanState({ key, steps: null });
+    void postTurn({ occasion, answers: a.slice(0, PLAN_OPENERS), mode: "plan" }).then((data) => {
+      const next: PlanState =
+        "error" in data || data.type !== "plan"
+          ? { key, steps: null, failed: "error" in data ? data.error || -1 : 500 }
+          : { key, steps: data.steps };
+      // Ignore a plan for answers the user has since changed.
+      setPlanState((p) => (p?.key === key ? next : p));
+    });
+  }
+
+  /** Budget answered: show the first planned question, waiting for the plan if it's still coming. */
+  function afterBudget(current: Extract<View, { kind: "question" }>, next: Answer[], pickedId: string, afterMs: number) {
+    const key = planKey(occasion, next);
+    const first = planState?.key === key && planState.steps ? nextPlanned(planState.steps, next) : null;
+    if (first) {
+      setView({ ...current, pickedId, busy: true, then: { question: first, index: next.length + 1, afterMs } });
+      return;
+    }
+    requestPlan(next);
+    setView({ ...current, pickedId, busy: true });
+    setWaiting({ key, answers: next, afterMs });
+  }
+
+  /** The second call: after the last planned question, pick the gifts. */
+  async function fetchResult(nextAnswers: Answer[]) {
+    const data = await postTurn({ occasion, answers: nextAnswers, mode: "result" });
     if ("error" in data) {
       setView({ kind: "error", message: errorMessage(data.error), answers: nextAnswers });
-    } else if (data.type === "plan") {
-      setPlan(data.steps);
-      const first = nextPlanned(data.steps, nextAnswers);
-      // The server never sends an empty plan; if it somehow did, show the retry screen.
-      if (first) setView({ kind: "question", question: first, index: nextAnswers.length + 1 });
-      else setView({ kind: "error", message: copy.errors.generic, answers: nextAnswers });
-    } else {
+    } else if (data.type === "result") {
       setView({
         kind: "result",
         resultId: data.resultId,
@@ -213,10 +283,11 @@ function QuizFlow({ openers, saved }: { openers: PublicQuestion[]; saved: Saved 
 
   function start() {
     writeSaved(null);
-    setPlan(null);
     const { a, h } = fillImplied([], []);
     setAnswers(a);
     setHistory(h);
+    // Mother's/Father's Day already know who and age: start planning right away.
+    if (a.length >= PLAN_OPENERS) requestPlan(a);
     setView({ kind: "question", question: openers[a.length], index: a.length + 1 });
   }
 
@@ -225,21 +296,19 @@ function QuizFlow({ openers, saved }: { openers: PublicQuestion[]; saved: Saved 
     const { a: next, h } = fillImplied([...answers, { questionId, optionId }], [...history, view.question]);
     setAnswers(next);
     setHistory(h);
-    if (next.length < openers.length) {
-      setView({ kind: "question", question: openers[next.length], index: next.length + 1 });
-      return;
-    }
-    // Planned questions come straight from the plan, no waiting.
-    const upcoming = next.length > openers.length && plan ? nextPlanned(plan, next) : null;
+    if (next.length === PLAN_OPENERS) requestPlan(next);
+    // Every answer plays the same exit: the unpicked answers cascade out around the pick.
+    // Openers and planned questions are already known, so they show as soon as it finishes.
+    const afterMs = leaveDuration(visibleOptions(view.question, answers).length - 1);
+    if (next.length === openers.length) return afterBudget(view, next, optionId, afterMs);
+    const upcoming = next.length < openers.length ? openers[next.length] : plan ? nextPlanned(plan, next) : null;
     if (upcoming) {
-      setView({ kind: "question", question: upcoming, index: next.length + 1 });
+      setView({ ...view, pickedId: optionId, busy: true, then: { question: upcoming, index: next.length + 1, afterMs } });
       return;
     }
-    // Last opener (plan the questions) or last planned question (pick the gifts). Keep the
-    // question on screen with the pick highlighted while that loads.
-    if (next.length === openers.length) setPlan(null);
+    // Last planned question: pick the gifts. The pick stays on screen, gently pulsing, meanwhile.
     setView({ ...view, pickedId: optionId, busy: true });
-    void fetchTurn(next);
+    void fetchResult(next);
   }
 
   /** Return to the previous question with its old answer highlighted; tapping any answer moves on. */
@@ -264,7 +333,11 @@ function QuizFlow({ openers, saved }: { openers: PublicQuestion[]; saved: Saved 
 
   function retry(failedAnswers: Answer[]) {
     setView({ kind: "thinking" });
-    void fetchTurn(failedAnswers);
+    if (failedAnswers.length === openers.length) {
+      // The plan failed: ask again and carry on once it's here.
+      requestPlan(failedAnswers);
+      setWaiting({ key: planKey(occasion, failedAnswers), answers: failedAnswers, afterMs: 0 });
+    } else void fetchResult(failedAnswers);
   }
 
   async function notIt(kind: GiftKind) {
@@ -338,7 +411,8 @@ function QuizFlow({ openers, saved }: { openers: PublicQuestion[]; saved: Saved 
     writeSaved(null);
     setAnswers([]);
     setHistory([]);
-    setPlan(null);
+    setPlanState(null);
+    setWaiting(null);
     setView({ kind: "landing" });
   }
 
@@ -384,10 +458,7 @@ function QuizFlow({ openers, saved }: { openers: PublicQuestion[]; saved: Saved 
       )}
 
       {view.kind === "question" && (() => {
-        const relationship = answers.find((a) => a.questionId === "relationship")?.optionId;
-        const options = view.question.options.filter(
-          (o) => !relationship || !o.hideFor?.includes(relationship as Relationship),
-        );
+        const options = visibleOptions(view.question, answers);
         // Long answer lists get a tighter layout so they still fit on a phone screen.
         const compact = options.length > 5;
         return (
@@ -413,7 +484,7 @@ function QuizFlow({ openers, saved }: { openers: PublicQuestion[]; saved: Saved 
           <div className={`mt-auto flex flex-col pt-8 ${compact ? "gap-2" : "gap-3"}`}>
             {options.map((o) => {
               const on = view.pickedId === o.id;
-              // While the next turn loads, the other answers leave one after another, top to bottom.
+              // After a pick, the other answers leave one after another, top to bottom.
               const leaveOrder = options.filter((x) => x.id !== view.pickedId).findIndex((x) => x.id === o.id);
               return (
                 <button
@@ -425,7 +496,7 @@ function QuizFlow({ openers, saved }: { openers: PublicQuestion[]; saved: Saved 
                   } ${
                     on ? "border border-transparent bg-solid font-semibold text-solid-fg" : "glass font-semibold"
                   } ${view.busy ? (on ? "answer-wait" : "answer-leave") : ""}`}
-                  style={view.busy && !on ? ({ "--i": leaveOrder } as CSSProperties) : undefined}
+                  style={view.busy && !on ? ({ "--i": leaveOrder, "--step": `${leaveStep(options.length - 1)}ms` } as CSSProperties) : undefined}
                 >
                   {o.label}
                   {/* Always takes its space, so picking an answer never re-wraps the text */}
@@ -534,6 +605,35 @@ function QuizFlow({ openers, saved }: { openers: PublicQuestion[]; saved: Saved 
       )}
     </main>
   );
+}
+
+type PlanState = { key: string; steps: PlanStep[] | null; failed?: number };
+
+/** Openers the plan is made from: everything before the budget (who and age). */
+const PLAN_OPENERS = 2;
+/** Identifies the answers a plan was made for; a new who or age needs a new plan. */
+function planKey(occasion: Occasion, answers: Answer[]): string {
+  return JSON.stringify([occasion, answers.slice(0, PLAN_OPENERS).map((x) => x.optionId)]);
+}
+
+/** The question's answers minus any hidden for who it's for (no "bedtime" for a partner). */
+function visibleOptions(question: PublicQuestion, answers: Answer[]) {
+  const relationship = answers.find((a) => a.questionId === "relationship")?.optionId;
+  return question.options.filter((o) => !relationship || !o.hideFor?.includes(relationship as Relationship));
+}
+
+// The answer exit: each unpicked answer leaves LEAVE_STEP ms after the one above it, and takes
+// LEAVE_MS to go. Long lists stagger faster so the exit never drags past ~0.75s.
+const LEAVE_MS = 420;
+const LEAVE_STEP = 80;
+const LEAVE_MAX_STAGGER = 320;
+function leaveStep(leavers: number): number {
+  return leavers > 1 ? Math.min(LEAVE_STEP, LEAVE_MAX_STAGGER / (leavers - 1)) : 0;
+}
+/** How long to wait before showing the next question, so the whole exit is seen. */
+function leaveDuration(leavers: number): number {
+  if (typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches) return 150;
+  return LEAVE_MS + leaveStep(leavers) * Math.max(leavers - 1, 0);
 }
 
 function Progress({ index, total }: { index: number; total: number }) {
