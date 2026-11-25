@@ -112,6 +112,29 @@ body {
   opacity: var(--orb-3-opacity);
 }
 
+/* Wide screens: the app is a centered column, so pull the glows in around it (instead of the
+   window edges) to keep color behind the glass. */
+@media (min-width: 768px) {
+  .orb-1 {
+    width: 420px;
+    height: 420px;
+    top: calc(50% - 480px);
+    right: calc(50% - 380px);
+  }
+  .orb-2 {
+    width: 400px;
+    height: 400px;
+    top: calc(50% - 120px);
+    left: calc(50% - 440px);
+  }
+  .orb-3 {
+    width: 380px;
+    height: 380px;
+    bottom: calc(50% - 400px);
+    right: calc(50% - 360px);
+  }
+}
+
 @media (prefers-reduced-motion: no-preference) {
   .fade-in {
     animation: fade-in 220ms ease-out both;

@@ -71,6 +71,15 @@ The openers are exempt from the 2–8 answer limit.
 | `age` | Which one sounds most like them? | `under_12` Still has a bedtime *(probably under 12)* *(hidden for partner, coworker)* · `teen` Communicates mostly in eye rolls *(probably 13–19)* · `20s` Still uses a parent's streaming password *(probably in their 20s)* · `30s_40s` Gets genuinely excited about a new vacuum *(probably 30s–40s)* · `50s_60s` Groans when they sit down *(probably 50s–60s)* · `70_plus` Signs their texts with their name *(probably 70+)* |
 | `budget` | What's the budget? | `under_25` Under $25 · `25_50` $25–50 · `50_100` $50–100 · `100_250` $100–250 · `250_plus` $250+ |
 
+**Skipped when the occasion answers them** (`src/lib/implied.ts`). A skipped question beats a slightly better age guess. The answer is still recorded, and Claude is told it was assumed:
+
+| Occasion | Who | Age |
+| --- | --- | --- |
+| Mother's Day | skipped: their mom (`relative`) | skipped: 50+ (`50s_60s`) |
+| Father's Day | skipped: their dad (`relative`) | skipped: 50+ (`50s_60s`) |
+| Graduation | asked | skipped: 18 to early 20s (`20s`) |
+| Wedding, Housewarming | asked | skipped: late 20s to 40s (`30s_40s`) |
+
 The age ranges are hidden on purpose: users pick the behavior that fits best, and some mis-bucketing (a 45-year-old who groans when sitting down) is accepted. The age rules that matter most are still safe, because the kid answers ("Still has a bedtime", "Communicates mostly in eye rolls") are hard to pick for an adult. "Still has a bedtime" is hidden when the recipient is a partner or coworker, and the server rejects it if it's sent anyway.
 
 ## Interests

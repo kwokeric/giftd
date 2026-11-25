@@ -8,7 +8,12 @@ import type { ShareRecord } from "@/lib/shares";
 export const getShare = cache(loadShare);
 
 export function shareHeadline(share: ShareRecord) {
-  const recipient = copy.recipient[share.relationship ?? "other"];
+  const recipient =
+    share.occasion === "mothers_day"
+      ? copy.recipientMom
+      : share.occasion === "fathers_day"
+        ? copy.recipientDad
+        : copy.recipient[share.relationship ?? "other"];
   const occasion = OCCASION_OPTIONS.find((o) => o.id === share.occasion)?.label ?? "";
   return { title: copy.sharedTitle(recipient), occasion };
 }

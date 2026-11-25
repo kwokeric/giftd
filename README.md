@@ -2,6 +2,8 @@
 
 **Find their gift.**
 
+**Try it: [giftd-ai.vercel.app](https://giftd-ai.vercel.app/)**
+
 giftd is a mobile web app for when you're stuck on a gift. It plays like a short game of 20 Questions: answer up to 10 tap-only questions about them, and AI recommends three gifts, each with a reason and a shopping link.
 
 ## What it's like

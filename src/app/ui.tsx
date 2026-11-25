@@ -88,3 +88,11 @@ export function BackIcon() {
     </svg>
   );
 }
+
+/**
+ * The app column. On phones it fills the screen so the main button sits at thumb height.
+ * On larger screens it's capped at a phone-like height and centered, so bottom buttons
+ * stay close to the content instead of drifting to the bottom of a tall window.
+ */
+export const SCREEN =
+  "relative z-10 mx-auto flex min-h-dvh w-full max-w-md flex-col px-6 pt-7 pb-8 md:my-auto md:min-h-[min(100dvh,780px)] md:py-10";

@@ -1,8 +1,9 @@
+import { impliedAnswer } from "./implied";
 import { ALL_QUESTIONS, getQuestion } from "./questions";
 import type { Answer, Occasion, Question } from "./types";
 import type { Gift, GiftKind } from "./schemas";
 
-export const PROMPT_VERSION = "p3";
+export const PROMPT_VERSION = "p4";
 
 const OCCASION_LABELS: Record<Occasion, string> = {
   birthday: "a birthday",
@@ -50,7 +51,10 @@ One sentence, warm and a little funny, like a friend who knows them. Prefer a sp
 Format: id: "question" [option_id="label" (plain meaning, when the label is playful)]
 ${ALL_QUESTIONS.map(bankLine).join("\n")}`;
 
-function describeAnswer(a: Answer): string {
+function describeAnswer(occasion: Occasion, a: Answer): string {
+  // Openers the occasion answered were never shown; say what was assumed instead.
+  const implied = impliedAnswer(occasion, a.questionId);
+  if (implied) return `- Not asked, assumed from the occasion: ${implied.note}`;
   const q = getQuestion(a.questionId);
   if (!q) return "";
   const opt = q.options.find((o) => o.id === a.optionId);
@@ -74,7 +78,7 @@ export function buildTurnMessage(args: {
     `Occasion: ${OCCASION_LABELS[occasion]}`,
     "",
     `Answers so far (${answers.length}):`,
-    ...answers.map(describeAnswer).filter(Boolean),
+    ...answers.map((a) => describeAnswer(occasion, a)).filter(Boolean),
   ];
   if (rejected?.length) lines.push("", "Rejected ideas (don't suggest these or anything close):", ...rejected.map((r) => `- ${r}`));
 
@@ -105,7 +109,7 @@ export function buildRerollMessage(args: {
     `Occasion: ${OCCASION_LABELS[occasion]}`,
     "",
     `Answers (${answers.length}):`,
-    ...answers.map(describeAnswer).filter(Boolean),
+    ...answers.map((a) => describeAnswer(occasion, a)).filter(Boolean),
     "",
     "Gifts already kept:",
     ...keep.map(giftLine),

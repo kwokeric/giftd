@@ -3,7 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { copy } from "@/lib/copy";
-import { ArrowIcon, GiftCard, Header } from "../../ui";
+import { ArrowIcon, GiftCard, Header, SCREEN } from "../../ui";
 import { getShare, shareHeadline } from "./share-data";
 
 type Props = { params: Promise<{ id: string }> };
@@ -25,7 +25,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default function SharedResultPage({ params }: Props) {
   return (
-    <main className="relative z-10 mx-auto flex min-h-dvh w-full max-w-md flex-col px-6 pt-7 pb-8">
+    <main className={SCREEN}>
       <Header logoHref="/" />
       <Suspense
         fallback={<p className="m-auto animate-pulse text-lg font-semibold text-muted">{copy.sharedLoading}</p>}

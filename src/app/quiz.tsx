@@ -4,9 +4,10 @@ import { useEffect, useState, useSyncExternalStore } from "react";
 import { copy } from "@/lib/copy";
 import { OCCASION_OPTIONS, defaultOccasion } from "@/lib/occasion";
 import type { GiftKind, SignedGift, TurnResponse } from "@/lib/schemas";
+import { impliedAnswer } from "@/lib/implied";
 import { OCCASIONS } from "@/lib/types";
 import type { Answer, Occasion, PublicQuestion, Relationship } from "@/lib/types";
-import { ArrowIcon, BackIcon, CheckIcon, GiftCard, Header, Pill, ShareIcon } from "./ui";
+import { ArrowIcon, BackIcon, CheckIcon, GiftCard, Header, Pill, SCREEN, ShareIcon } from "./ui";
 
 type View =
   | { kind: "landing" }
@@ -167,18 +168,42 @@ function QuizFlow({ openers, saved }: { openers: PublicQuestion[]; saved: Saved 
     }
   }
 
+  // Openers the occasion already answers (e.g. Mother's Day → who and age) are filled in
+  // silently and never shown.
+  const isImplied = (a: Answer, position: number) =>
+    position < openers.length && impliedAnswer(occasion, a.questionId) !== undefined;
+  const impliedCount = openers.filter((q) => impliedAnswer(occasion, q.id)).length;
+  /** Position among the questions the user actually sees (skipped openers before it don't count). */
+  const shownIndex = (index: number) =>
+    index - openers.slice(0, index - 1).filter((q) => impliedAnswer(occasion, q.id)).length;
+
+  /** Appends answers for any upcoming openers the occasion already answers. */
+  function fillImplied(list: Answer[], hist: PublicQuestion[]) {
+    const a = [...list];
+    const h = [...hist];
+    while (a.length < openers.length) {
+      const q = openers[a.length];
+      const implied = impliedAnswer(occasion, q.id);
+      if (!implied) break;
+      a.push({ questionId: q.id, optionId: implied.optionId });
+      h.push(q);
+    }
+    return { a, h };
+  }
+
   function start() {
     writeSaved(null);
-    setAnswers([]);
-    setHistory([]);
-    setView({ kind: "question", question: openers[0], index: 1 });
+    const { a, h } = fillImplied([], []);
+    setAnswers(a);
+    setHistory(h);
+    setView({ kind: "question", question: openers[a.length], index: a.length + 1 });
   }
 
   function answer(questionId: string, optionId: string) {
     if (view.kind !== "question" || view.busy) return;
-    const next = [...answers, { questionId, optionId }];
+    const { a: next, h } = fillImplied([...answers, { questionId, optionId }], [...history, view.question]);
     setAnswers(next);
-    setHistory([...history, view.question]);
+    setHistory(h);
     if (next.length < openers.length) {
       setView({ kind: "question", question: openers[next.length], index: next.length + 1 });
     } else {
@@ -191,15 +216,21 @@ function QuizFlow({ openers, saved }: { openers: PublicQuestion[]; saved: Saved 
   /** Return to the previous question with its old answer highlighted; tapping any answer moves on. */
   function back() {
     if (view.kind !== "question" || view.busy) return;
-    if (answers.length === 0) {
+    // Step over answers the occasion filled in: the user never saw those questions.
+    let a = answers;
+    let h = history;
+    while (a.length > 0 && isImplied(a[a.length - 1], a.length - 1)) {
+      a = a.slice(0, -1);
+      h = h.slice(0, -1);
+    }
+    if (a.length === 0) {
       writeSaved(null);
       setView({ kind: "landing" });
       return;
     }
-    const previous = history[history.length - 1];
-    setAnswers(answers.slice(0, -1));
-    setHistory(history.slice(0, -1));
-    setView({ kind: "question", question: previous, index: answers.length, pickedId: answers[answers.length - 1].optionId });
+    setAnswers(a.slice(0, -1));
+    setHistory(h.slice(0, -1));
+    setView({ kind: "question", question: h[h.length - 1], index: a.length, pickedId: a[a.length - 1].optionId });
   }
 
   function retry(failedAnswers: Answer[]) {
@@ -282,7 +313,7 @@ function QuizFlow({ openers, saved }: { openers: PublicQuestion[]; saved: Saved 
   }
 
   return (
-    <main className="relative z-10 mx-auto flex min-h-dvh w-full max-w-md flex-col px-6 pt-7 pb-8">
+    <main className={SCREEN}>
       {view.kind === "landing" && (
         <section className="fade-in flex flex-1 flex-col">
           <Header />
@@ -342,7 +373,7 @@ function QuizFlow({ openers, saved }: { openers: PublicQuestion[]; saved: Saved 
                 <BackIcon />
               </button>
             }
-            right={<Pill>{copy.progress(view.index)}</Pill>}
+            right={<Pill>{copy.progress(shownIndex(view.index), MAX_QUESTIONS - impliedCount)}</Pill>}
           />
           <h1
             className={`${compact ? "mt-10 text-[32px]" : "mt-28 text-[38px]"} leading-[1.08] font-extrabold tracking-[-0.035em]`}
@@ -369,7 +400,7 @@ function QuizFlow({ openers, saved }: { openers: PublicQuestion[]; saved: Saved 
               );
             })}
           </div>
-          <Progress index={view.index} />
+          <Progress index={shownIndex(view.index)} total={MAX_QUESTIONS - impliedCount} />
           <p aria-live="polite" className="mt-3 h-5 text-sm font-semibold text-muted">
             {view.busy ? (answers.length >= 5 ? copy.pickingGifts : copy.thinking) : ""}
           </p>
@@ -468,17 +499,17 @@ function QuizFlow({ openers, saved }: { openers: PublicQuestion[]; saved: Saved 
   );
 }
 
-function Progress({ index }: { index: number }) {
+function Progress({ index, total }: { index: number; total: number }) {
   return (
     <div
       role="progressbar"
       aria-label="Quiz progress"
       aria-valuemin={0}
-      aria-valuemax={MAX_QUESTIONS}
+      aria-valuemax={total}
       aria-valuenow={index}
       className="mt-[22px] h-1 overflow-hidden rounded-full bg-track"
     >
-      <div className="h-full rounded-full bg-bar transition-[width] duration-300" style={{ width: `${(index / MAX_QUESTIONS) * 100}%` }} />
+      <div className="h-full rounded-full bg-bar transition-[width] duration-300" style={{ width: `${(index / total) * 100}%` }} />
     </div>
   );
 }
