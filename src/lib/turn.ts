@@ -1,10 +1,11 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
-import type { z } from "zod";
+import { z } from "zod";
 import { eligible, validateAnswers } from "./eligibility";
 import { MAX_ANSWERS, PLAN_MAX, PLAN_MIN, buildPlan } from "./plan";
 import { SYSTEM_PROMPT, buildPlanMessage, buildRerollMessage, buildResultMessage } from "./prompt";
 import { OPENER_IDS } from "./questions";
+import { findPhoto } from "./photos";
 import { signGift } from "./sign";
 import { Gift, ResultSchema, planSchema } from "./schemas";
 import type { GiftKind, TurnRequest, TurnResponse } from "./schemas";
@@ -35,7 +36,11 @@ export type TurnHooks = {
 };
 
 /** random: for the plan's discovery questions (tests pass a seeded one). */
-type Ctx = { client: Anthropic; hooks?: TurnHooks; random?: () => number };
+type Ctx = { client: Anthropic; hooks?: TurnHooks; random?: () => number; fetch?: typeof fetch };
+
+/** A gift as Claude picked it, before it gets a photo. */
+const ModelPick = Gift.omit({ photo: true }).extend({ photoQuery: z.string().max(60).optional() });
+type ModelPick = z.infer<typeof ModelPick>;
 
 async function callModel<S extends z.ZodType>(
   ctx: Ctx,
@@ -70,12 +75,12 @@ async function callModel<S extends z.ZodType>(
 }
 
 /** Validates gifts from Claude: length caps, and exactly the expected kinds, once each. */
-export function cleanGifts(raw: unknown[], expectedKinds: GiftKind[], avoidNames: string[] = []): Gift[] | null {
+export function cleanGifts(raw: unknown[], expectedKinds: GiftKind[], avoidNames: string[] = []): ModelPick[] | null {
   if (raw.length !== expectedKinds.length) return null;
   const avoid = new Set(avoidNames.map((n) => n.trim().toLowerCase()));
-  const gifts: Gift[] = [];
+  const gifts: ModelPick[] = [];
   for (const g of raw) {
-    const parsed = Gift.safeParse(g);
+    const parsed = ModelPick.safeParse(g);
     if (!parsed.success) return null;
     if (avoid.has(parsed.data.name.trim().toLowerCase())) return null;
     gifts.push(parsed.data);
@@ -89,6 +94,19 @@ export function cleanGifts(raw: unknown[], expectedKinds: GiftKind[], avoidNames
 
 const newResultId = () => crypto.randomUUID().replace(/-/g, "").slice(0, 12);
 
+/** Adds a stock photo to each gift (all at once; a gift without one shows its category tile). */
+async function withPhotos(picks: ModelPick[], ctx: Ctx): Promise<Gift[]> {
+  return Promise.all(
+    picks.map(async ({ photoQuery, ...gift }) => {
+      const photo = await findPhoto(photoQuery || gift.name, ctx.fetch).catch((err) => {
+        ctx.hooks?.onWarn?.(`photo lookup failed: ${String(err)}`);
+        return null;
+      });
+      return photo ? { ...gift, photo } : gift;
+    }),
+  );
+}
+
 function resultResponse(gifts: Gift[]): TurnResponse {
   return { type: "result", resultId: newResultId(), gifts: gifts.map((g) => ({ ...g, sig: signGift(g) })) };
 }
@@ -97,7 +115,7 @@ async function resultTurn(ctx: Ctx, message: string, expectedKinds: GiftKind[], 
   for (let i = 0; i < ATTEMPTS; i++) {
     const out = await callModel(ctx, "result", ResultSchema, message);
     const gifts = out && cleanGifts(out.gifts, expectedKinds, avoid);
-    if (gifts) return resultResponse(gifts);
+    if (gifts) return resultResponse(await withPhotos(gifts, ctx));
     ctx.hooks?.onWarn?.(`result attempt ${i + 1} was invalid`);
   }
   throw new TurnError(502, "Couldn't come up with gifts right now");

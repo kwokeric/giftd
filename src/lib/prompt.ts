@@ -4,7 +4,7 @@ import { ALL_QUESTIONS, getQuestion } from "./questions";
 import type { Answer, Occasion, Question } from "./types";
 import type { Gift, GiftKind } from "./schemas";
 
-export const PROMPT_VERSION = "p9";
+export const PROMPT_VERSION = "p10";
 
 const OCCASION_LABELS: Record<Occasion, string> = {
   birthday: "a birthday",
@@ -51,6 +51,7 @@ Return exactly 3 gifts: one "safe" (a reliable pick that clearly fits), one "wil
 - Never name a specific brand, product, store or URL. Give a gift idea ("Pour-over coffee kit") and a short Amazon search query for it.
 - Never repeat or closely resemble anything listed as rejected or already kept.
 - Tag each gift with the closest category.
+- photoQuery finds a stock photo to show with the gift: name the thing itself in plain words ("pour over coffee", "hot sauce bottles"), no brands or adjectives.
 - Answers marked [for fun] are light signals: use them to break a tie or flavor the wildcard, never as the main reason for a pick.
 
 # The question bank

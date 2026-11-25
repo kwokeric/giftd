@@ -3,7 +3,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { copy } from "@/lib/copy";
 import { RingLoader } from "./loaders";
-import type { Gift } from "@/lib/schemas";
+import type { Gift, GiftCategory, GiftKind } from "@/lib/schemas";
 
 const AMAZON_TAG = process.env.NEXT_PUBLIC_AMAZON_TAG;
 
@@ -33,36 +33,154 @@ export function Pill({ children }: { children: ReactNode }) {
   return <span className="glass rounded-full px-3.5 py-2 min-w-[5.75rem] text-center text-sm font-semibold tabular-nums">{children}</span>;
 }
 
-/** A pick: kind, price, name, and a row of actions (Shop this is always first). */
-export function GiftCard({ gift, busy, actions, footer }: { gift: Gift; busy?: boolean; actions?: ReactNode; footer?: ReactNode }) {
+/** Shown when a gift has no photo: an emoji for its category on the kind's color. */
+const CATEGORY_EMOJI: Record<GiftCategory, string> = {
+  kitchen_cooking: "🍳",
+  coffee_tea: "☕",
+  food_treats: "🍫",
+  drinks_bar: "🍸",
+  home_decor: "🖼️",
+  home_comfort: "🛋️",
+  garden_plants: "🪴",
+  tech_gadgets: "📱",
+  gaming: "🎮",
+  books_reading: "📚",
+  music_audio: "🎧",
+  art_craft: "🎨",
+  diy_tools: "🧰",
+  outdoors_camping: "🏕️",
+  fitness_sports: "🏋️",
+  wellness_selfcare: "🧖",
+  beauty_grooming: "💄",
+  fashion_accessories: "👜",
+  jewelry: "💍",
+  travel_gear: "🧳",
+  pets: "🐾",
+  kids_toys: "🧸",
+  kids_learning: "🔬",
+  games_puzzles: "🧩",
+  stationery_desk: "✏️",
+  keepsakes_personalized: "💌",
+  fandom_collectibles: "🦸",
+  car_commute: "🚗",
+  experiences: "🎟️",
+  subscriptions: "📦",
+  other: "🎁",
+};
+const KIND_TINT: Record<GiftKind, string> = {
+  safe: "radial-gradient(circle at 30% 20%, #ffb3d6, #b8327a)",
+  wildcard: "radial-gradient(circle at 30% 20%, #a99bff, #3a2c9e)",
+  budget: "radial-gradient(circle at 30% 20%, #9ee6ff, #1f7fa8)",
+};
+
+/** The three picks as photo tiles: the safe bet big on top, the other two side by side. */
+export function GiftTiles({ children }: { children: ReactNode[] }) {
+  const [top, ...rest] = children;
   return (
-    <article aria-busy={busy} className="glass fade-in relative rounded-[22px] px-[18px] py-4">
-      {/* While "Not it" finds a replacement, the card dims and the glow ring spins over it. */}
+    <div className="flex flex-col gap-3">
+      {top}
+      <div className="grid grid-cols-2 gap-3">{rest}</div>
+    </div>
+  );
+}
+
+/**
+ * A pick as a photo tile: kind, price and name over a dark fade at the bottom, then Shop this
+ * and (in the quiz) Not it. Small tiles shorten Shop this and make Not it an icon.
+ */
+export function GiftCard({
+  gift,
+  big,
+  busy,
+  onNotIt,
+  notItDisabled,
+  error,
+}: {
+  gift: Gift;
+  big?: boolean;
+  busy?: boolean;
+  onNotIt?: () => void;
+  notItDisabled?: boolean;
+  error?: ReactNode;
+}) {
+  const photo = gift.photo;
+  return (
+    <article
+      aria-busy={busy}
+      className={`fade-in relative isolate overflow-hidden rounded-[22px] border border-[var(--glass-border)] text-white ${big ? "h-72" : "h-64"}`}
+      style={{ background: photo?.color ?? KIND_TINT[gift.kind] }}
+    >
+      <div className={`absolute inset-0 -z-10 transition-[opacity,filter] duration-300 ${busy ? "opacity-40 blur-[3px]" : ""}`}>
+        {photo ? (
+          // Pexels already serves sized, compressed images, so there's nothing for next/image to add.
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={photo.src} alt={photo.alt} className="size-full object-cover" />
+        ) : (
+          <div
+            aria-hidden="true"
+            className={`flex size-full justify-center ${big ? "pt-9 text-[84px]" : "pt-8 text-[56px]"}`}
+            style={{ background: KIND_TINT[gift.kind] }}
+          >
+            <span className="drop-shadow-[0_6px_10px_rgba(0,0,0,.25)]">{CATEGORY_EMOJI[gift.category]}</span>
+          </div>
+        )}
+      </div>
+      {photo && (
+        <a
+          href={photo.byUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="absolute top-2 right-2.5 max-w-[75%] truncate rounded-full bg-black/30 px-2 py-0.5 text-[10px] font-semibold text-white/85"
+        >
+          {photo.by} · Pexels
+        </a>
+      )}
       {busy && (
         <div className="fade-in pointer-events-none absolute inset-0 z-10 flex items-center justify-center">
           <RingLoader />
         </div>
       )}
-      <div className={`transition-[opacity,filter] duration-300 ${busy ? "opacity-30 blur-[2px]" : ""}`}>
-      <div className="flex justify-between">
-        <span className="text-xs font-extrabold tracking-[0.08em] text-kicker uppercase">{copy.kinds[gift.kind]}</span>
-        <span className="text-sm font-semibold text-muted">{gift.priceRange}</span>
-      </div>
-      <h2 className="mt-1.5 mb-3.5 text-[19px] font-extrabold tracking-[-0.02em]">{gift.name}</h2>
-      <div className="flex gap-2">
-        <a
-          href={shopUrl(gift.searchQuery)}
-          target="_blank"
-          rel="noopener noreferrer sponsored"
-          className="inline-flex min-h-11 items-center rounded-full bg-solid px-[18px] text-[15px] font-extrabold text-solid-fg"
-        >
-          {copy.shop}
-        </a>
-        {actions}
-      </div>
-      {footer}
+      <div
+        className={`absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 via-black/55 to-transparent px-3.5 pt-12 pb-3.5 transition-opacity duration-300 ${busy ? "opacity-40" : ""}`}
+      >
+        <div className={`flex text-xs ${big ? "items-baseline justify-between" : "flex-col gap-0.5"}`}>
+          <span className="font-extrabold tracking-[0.08em] text-[#ffc4e1] uppercase">{copy.kinds[gift.kind]}</span>
+          <span className="font-semibold text-white/85">{gift.priceRange}</span>
+        </div>
+        <h2 className={`mt-1 leading-tight font-extrabold tracking-[-0.02em] ${big ? "mb-3 text-[21px]" : "mb-2.5 text-base"}`}>
+          {gift.name}
+        </h2>
+        {error}
+        <div className="flex gap-2">
+          <a
+            href={shopUrl(gift.searchQuery)}
+            target="_blank"
+            rel="noopener noreferrer sponsored"
+            className={`inline-flex items-center justify-center rounded-full bg-white font-extrabold text-[#120e24] ${big ? "min-h-11 px-[18px] text-[15px]" : "min-h-10 flex-1 px-3 text-sm"}`}
+          >
+            {big ? copy.shop : copy.shopShort}
+          </a>
+          {onNotIt && (
+            <button
+              onClick={onNotIt}
+              disabled={notItDisabled}
+              aria-label={big ? undefined : copy.notIt}
+              className={`inline-flex items-center justify-center rounded-full border border-white/40 font-semibold disabled:opacity-60 ${big ? "min-h-11 px-4 text-[15px]" : "size-10 shrink-0"}`}
+            >
+              {big ? (busy ? copy.findingAnother : copy.notIt) : <CloseIcon />}
+            </button>
+          )}
+        </div>
       </div>
     </article>
+  );
+}
+
+function CloseIcon() {
+  return (
+    <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.75" strokeLinecap="round">
+      <path d="M6 6l12 12M18 6L6 18" />
+    </svg>
   );
 }
 

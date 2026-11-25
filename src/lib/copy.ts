@@ -14,6 +14,7 @@ export const copy = {
     budget: "Budget pick",
   },
   shop: "Shop this",
+  shopShort: "Shop",
   notIt: "Not it",
   findingAnother: "Finding another…",
   rerollFailed: "Couldn't find another one. Try again?",

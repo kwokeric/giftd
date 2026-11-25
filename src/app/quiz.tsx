@@ -10,7 +10,7 @@ import { MAX_ANSWERS, nextPlanned, planSequence } from "@/lib/plan-walk";
 import { OCCASIONS } from "@/lib/types";
 import type { Answer, Occasion, PublicQuestion, Relationship } from "@/lib/types";
 import { PhraseLoader } from "./loaders";
-import { ArrowIcon, BackIcon, CheckIcon, GiftCard, Header, Pill, SCREEN, ShareIcon } from "./ui";
+import { ArrowIcon, BackIcon, CheckIcon, GiftCard, GiftTiles, Header, Pill, SCREEN, ShareIcon } from "./ui";
 
 type View =
   | { kind: "landing" }
@@ -550,34 +550,25 @@ function QuizFlow({ openers, saved }: { openers: PublicQuestion[]; saved: Saved 
           <h1 className="mt-6 mb-[18px] text-[30px] leading-[1.06] font-extrabold tracking-[-0.035em]">
             {copy.resultTitle}
           </h1>
-          <div className="flex flex-col gap-3">
-            {view.gifts.map((g) => {
-              const rerolling = view.rerolling === g.kind;
-              return (
-                <GiftCard
-                  key={g.kind}
-                  gift={g}
-                  busy={rerolling}
-                  actions={
-                    <button
-                      onClick={() => void notIt(g.kind)}
-                      disabled={view.rerolling !== null || shareStatus === "busy"}
-                      className="inline-flex min-h-11 items-center rounded-full border border-outline px-4 text-[15px] font-semibold disabled:opacity-60"
-                    >
-                      {rerolling ? copy.findingAnother : copy.notIt}
-                    </button>
-                  }
-                  footer={
-                    view.rerollError === g.kind && (
-                      <p role="alert" className="mt-2 text-sm font-semibold text-kicker">
-                        {copy.rerollFailed}
-                      </p>
-                    )
-                  }
-                />
-              );
-            })}
-          </div>
+          <GiftTiles>
+            {view.gifts.map((g, i) => (
+              <GiftCard
+                key={g.kind}
+                gift={g}
+                big={i === 0}
+                busy={view.rerolling === g.kind}
+                onNotIt={() => void notIt(g.kind)}
+                notItDisabled={view.rerolling !== null || shareStatus === "busy"}
+                error={
+                  view.rerollError === g.kind && (
+                    <p role="alert" className="mb-2 text-xs font-semibold text-[#ffc4e1]">
+                      {copy.rerollFailed}
+                    </p>
+                  )
+                }
+              />
+            ))}
+          </GiftTiles>
           <div className="mt-5 flex flex-col items-center gap-1">
             <button
               onClick={() => void shareResult()}

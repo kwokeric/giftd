@@ -53,7 +53,21 @@ export const ModelGift = z.object({
   kind: GiftKind,
   category: GiftCategory,
   searchQuery: z.string().describe("A short Amazon search query for this idea"),
+  photoQuery: z.string().describe("2–4 plain words for a stock photo of this kind of thing, e.g. 'pour over coffee'"),
 });
+
+/**
+ * A stock photo for a gift (from Pexels, see photos.ts). Only Pexels URLs are allowed, so a
+ * share link can't point the page at someone else's image.
+ */
+export const GiftPhoto = z.object({
+  src: z.string().max(300).startsWith("https://images.pexels.com/"),
+  alt: z.string().max(200),
+  color: z.string().regex(/^#[0-9a-fA-F]{6}$/).optional(),
+  by: z.string().max(80),
+  byUrl: z.string().max(200).startsWith("https://www.pexels.com/"),
+});
+export type GiftPhoto = z.infer<typeof GiftPhoto>;
 
 /** Gift as it travels between client and server (length-capped). */
 export const Gift = z.object({
@@ -62,6 +76,7 @@ export const Gift = z.object({
   kind: GiftKind,
   category: GiftCategory,
   searchQuery: z.string().min(1).max(120),
+  photo: GiftPhoto.optional(),
 });
 export type Gift = z.infer<typeof Gift>;
 

@@ -4,7 +4,7 @@
 
 **Try it: [giftd-ai.vercel.app](https://giftd-ai.vercel.app/)**
 
-giftd is a mobile web app for when you're stuck on a gift. It plays like a short game of 20 Questions: answer up to 12 tap-only questions about an adult in your life, and AI recommends three gifts, each with a price range and a shopping link.
+giftd is a mobile web app for when you're stuck on a gift. It plays like a short game of 20 Questions: answer up to 12 tap-only questions about an adult in your life, and AI recommends three gifts, each with a photo, a price range and a shopping link.
 
 ## What it's like
 
