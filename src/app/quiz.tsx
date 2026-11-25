@@ -481,7 +481,8 @@ function QuizFlow({ openers, saved }: { openers: PublicQuestion[]; saved: Saved 
             right={<Pill>{copy.progress(shownIndex(view.index), totalShown)}</Pill>}
           />
           <h1
-            className={`fade-in ${compact ? "mt-10 text-[32px]" : "mt-28 text-[38px]"} leading-[1.08] font-extrabold tracking-[-0.035em]`}
+            className={`${view.busy ? "question-leave" : "question-enter"} ${compact ? "mt-10 text-[32px]" : "mt-28 text-[38px]"} leading-[1.08] font-extrabold tracking-[-0.035em]`}
+            style={view.busy ? ({ "--leave": `${view.then?.afterMs ?? leaveDuration(options.length - 1)}ms` } as CSSProperties) : undefined}
           >
             {view.question.text}
           </h1>
@@ -508,7 +509,14 @@ function QuizFlow({ openers, saved }: { openers: PublicQuestion[]; saved: Saved 
                       : ({ "--i": i } as CSSProperties)
                   }
                 >
-                  {o.label}
+                  <span className="flex items-center gap-3">
+                    {o.emoji && (
+                      <span aria-hidden="true" className={`w-7 shrink-0 text-center leading-none ${compact ? "text-xl" : "text-2xl"}`}>
+                        {o.emoji}
+                      </span>
+                    )}
+                    {o.label}
+                  </span>
                   {/* Always takes its space, so picking an answer never re-wraps the text */}
                   <span className={on ? "" : "invisible"}>
                     <CheckIcon />

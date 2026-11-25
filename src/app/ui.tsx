@@ -86,7 +86,7 @@ export function GiftTiles({ children }: { children: ReactNode[] }) {
 
 /**
  * A pick as a photo tile: kind, price and name over a dark fade at the bottom, then Shop this
- * and (in the quiz) Not it. Small tiles shorten Shop this and make Not it an icon.
+ * and (in the quiz) Try another. Small tiles shorten Shop this and make Try another an icon.
  */
 export function GiftCard({
   gift,
@@ -167,7 +167,14 @@ export function GiftCard({
               aria-label={big ? undefined : copy.notIt}
               className={`inline-flex items-center justify-center rounded-full border border-white/40 font-semibold disabled:opacity-60 ${big ? "min-h-11 px-4 text-[15px]" : "size-10 shrink-0"}`}
             >
-              {big ? (busy ? copy.findingAnother : copy.notIt) : <CloseIcon />}
+              {big ? (
+                <span className="flex items-center gap-1.5">
+                  <RetryIcon />
+                  {busy ? copy.findingAnother : copy.notIt}
+                </span>
+              ) : (
+                <RetryIcon />
+              )}
             </button>
           )}
         </div>
@@ -176,10 +183,11 @@ export function GiftCard({
   );
 }
 
-function CloseIcon() {
+function RetryIcon() {
   return (
-    <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.75" strokeLinecap="round">
-      <path d="M6 6l12 12M18 6L6 18" />
+    <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M20 12a8 8 0 1 1-2.34-5.66" />
+      <path d="M20 4v5h-5" />
     </svg>
   );
 }

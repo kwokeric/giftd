@@ -1,3 +1,4 @@
+import { ANSWER_EMOJI } from "./emoji";
 import { conditionsMatch, eligible, isExcluded } from "./eligibility";
 import { BANK } from "./questions";
 import type { PlanStep } from "./schemas";
@@ -26,7 +27,10 @@ const FUN_AT = [1, 5];
 export const toPublic = (q: Question): PublicQuestion => ({
   id: q.id,
   text: q.text,
-  options: q.options.map(({ id, label }) => ({ id, label })),
+  options: q.options.map(({ id, label, hideFor }) => {
+    const emoji = ANSWER_EMOJI[q.id]?.[id];
+    return { id, label, ...(emoji && { emoji }), ...(hideFor && { hideFor }) };
+  }),
 });
 
 /**

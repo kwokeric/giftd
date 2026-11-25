@@ -67,5 +67,5 @@ export type Answer = {
 export type PublicQuestion = {
   id: string;
   text: string;
-  options: { id: string; label: string; hideFor?: Relationship[] }[];
+  options: { id: string; label: string; emoji?: string; hideFor?: Relationship[] }[];
 };

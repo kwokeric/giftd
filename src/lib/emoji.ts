@@ -1,0 +1,57 @@
+// Emojis shown before answers, by question and option ID. Only where they help: concrete things,
+// places and reactions. Abstract or gift-style questions ("What kind of gift feels right?") and
+// the openers have none. A question gets an emoji on every answer or on none (checked in tests).
+// Display only: Claude never sees these.
+
+export const ANSWER_EMOJI: Record<string, Record<string, string>> = {
+  free_time: { active: "🥾", sports: "🏈", making: "🎨", cooking: "🍳", media: "🍿", social: "💬", wellness: "🧘", beauty: "🧴" },
+  active_type: { outdoors: "🏔️", gym: "🏋️", sports: "🏀", endurance: "🏃", water: "🛶" },
+  maker_type: { art: "🖌️", build: "🔨", garden: "🪴", fiber: "🧶", tinker: "🔌" },
+  cooking_type: { bake: "🍞", grill: "🔥", global: "🍜", comfort: "🥘", healthy: "🥗" },
+  beauty_type: { skincare: "🧴", makeup: "💄", hair: "💇", fragrance: "🌸", nails: "💅" },
+  media_type: { games: "🎮", shows: "📺", music: "🎧", internet: "🌐", podcasts: "🎙️" },
+  gaming_platform: { pc: "🖥️", console: "🛋️", switch: "🕹️", phone: "📱", tabletop: "🎲" },
+  social_type: { hosting: "🧀", dining: "🍽️", events: "🪩", travel: "✈️", games: "🧠" },
+  food_drink: { cook: "🥩", coffee: "☕", drinks: "🍷", spicy: "🌶️", none: "🥣" },
+  reader: { books: "📚", digital: "📱", articles: "📰", magazines: "📖", no: "🫥" },
+  music_level: { plays: "🎸", collector: "💿", live: "🎤", playlists: "🎧", background: "📻" },
+  sports_fan: { diehard: "📣", casual: "📺", fantasy: "📊", plays: "⚽", no: "🤷" },
+  fandom: { franchise: "🎬", anime: "🦸", artist: "🎤", history: "🏰", no: "🤷" },
+  pets: { dog: "🐶", cat: "🐱", other: "🦎", plants: "🌿", none: "🌅" },
+  travel: { frequent: "✈️", sometimes: "🚗", camping: "⛺", beach: "🏖️", homebody: "🛋️" },
+  wellness: { pamper: "🛁", fitness: "⌚", calm: "🧘", outside: "🚶", other: "⚡" },
+  tech: { early: "💻", smart_home: "🔊", practical: "☎️", averse: "🙋" },
+  style: { minimal: "🖤", bold: "🌈", classic: "👔", comfy: "☁️", none: "🧺" },
+  wardrobe: { tops: "🧥", shoes: "👟", accessories: "🧢", jewelry: "💍", lounge: "🛌" },
+
+  group_chat: { planner: "🗓️", memes: "😂", lurker: "👀", hype: "🙌", voice: "🎙️" },
+  mornings: { early: "🏃", zombie: "🧟", slow: "🥐", snooze: "😴", sunny: "☀️" },
+  zombies: { leader: "👑", prepper: "🎒", fixer: "🔧", charm: "😎", comfort: "🏳️" },
+  road_trip: { dj: "🎶", navigator: "🗺️", snacks: "🍿", sleeper: "😴", driver: "🚗" },
+  party_trick: { trivia: "🧠", karaoke: "🎤", fixer: "🔧", animals: "🐕", stories: "📖" },
+  superpower: { teleport: "✨", pause: "⏸️", minds: "🔮", flight: "🦅", invisible: "👻" },
+  care_style: { thoughtful: "🍪", time: "📅", helps: "🚲", words: "💌", hugs: "🤗" },
+  sentimental: { sentimental: "😭", quiet: "🥹", both: "😊", hesitant: "😐", practical: "🧾" },
+  humor: { gag: "🤣", useful_funny: "😄", secret: "🤫", serious: "😐", no_gag: "🧾" },
+  adventurous: { habit: "🔁", sometimes: "🎲", recommend: "🤝", always: "🌍", dare: "🌶️" },
+  energy: { extrovert: "💃", host: "🧽", depends: "💬", pets: "🐕", introvert: "🏠" },
+  organized: { very: "🏷️", apps: "📱", mostly: "🗂️", piles: "📚", chaos: "🔑" },
+  home_vibe: { cozy: "🕯️", modern: "🪑", rustic: "🪵", eclectic: "🖼️", bare: "🛏️" },
+
+  work_style: { desk: "💼", remote: "💻", hands_on: "👟", shifts: "🌙", boss: "🚀", not_working: "🏖️" },
+  busy: { slammed: "☕", burnout: "🫠", transition: "🧭", balanced: "😌", free: "🎨" },
+  living: { own: "🏡", renting: "🔑", small: "📦", roommates: "🥡", family: "👨‍👩‍👧" },
+  milestone: { new_home: "📦", new_baby: "👶", new_job: "💼", engaged: "💍", new_pet: "🐶", retired: "🏖️", nothing: "☕" },
+  mobility: { very: "⚡", garden: "🌻", grandkids: "👧", easy: "🧩", home: "🏠" },
+
+  experience_type: { food: "🍷", class: "🏺", adventure: "🪂", show: "🎭", game: "🏟️", relax: "💆", getaway: "🏨" },
+  consumable_type: { treats: "🍫", beverages: "☕", pantry: "🫒", bath: "🛁", flowers: "💐", subscription: "📬" },
+  practical_area: { kitchen: "🔪", desk: "💻", on_the_go: "🚗", routine: "⏰", sleep: "🛏️", yard: "🌱" },
+  last_gift: { hit: "🏆", fine: "🙂", flop: "📉", regifted: "🎁", forgot: "🤔", first: "✨" },
+
+  couple_stage: { new: "🦋", few_years: "☕", long: "💬", married: "💍", decades: "📟" },
+  coworker_closeness: { secret_santa: "🎅", barely: "👋", friendly: "☕", close: "👯", boss: "👔" },
+  graduation_next: { college: "🎓", job: "💼", moving: "🏙️", gap: "🎒", unsure: "🤷" },
+  thank_you_for: { favor: "🦸", hosting: "🛋️", moving: "📦", sitting: "🐾", work: "💼", general: "🌟" },
+  new_home_need: { decor: "🖼️", kitchen: "🍳", comfort: "🛋️", tools: "🪛", plants: "🪴", yard: "🌳" },
+};

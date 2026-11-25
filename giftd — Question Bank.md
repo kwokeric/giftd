@@ -68,7 +68,7 @@ The openers are exempt from the 2–8 answer limit.
 | ID | Question | Answers |
 | --- | --- | --- |
 | `relationship` | Who are we shopping for? | `partner` Partner · `relative` Relative · `friend` Friend · `coworker` Coworker · `other` Someone else |
-| `age` | Which one sounds most like them? | `20s` Still uses a parent's streaming password *(probably in their 20s)* · `30s_40s` Gets genuinely excited about a new vacuum *(probably 30s–40s)* · `50s_60s` Groans when they sit down *(probably 50s–60s)* · `70_plus` Signs their texts with their name *(probably 70+)* |
+| `age` | Which one sounds most like them? | `20s` Still uses a parent's streaming password *(probably in their 20s)* · `30s` Recently joined a run club *(probably 30s)* · `40s` Remembers having a cassette player *(probably 40s)* · `50s_60s` Groans when they sit down *(probably 50s–60s)* · `70_plus` Signs their texts with their name *(probably 70+)* |
 | `budget` | What's the budget? | `under_25` Under $25 · `25_50` $25–50 · `50_100` $50–100 · `100_250` $100–250 · `250_plus` $250+ |
 
 **Skipped when the occasion answers them** (`src/lib/implied.ts`). A skipped question beats a slightly better age guess. The answer is still recorded, and Claude is told it was assumed:

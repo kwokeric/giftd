@@ -15,7 +15,7 @@ export const copy = {
   },
   shop: "Shop this",
   shopShort: "Shop",
-  notIt: "Not it",
+  notIt: "Try another",
   findingAnother: "Finding another…",
   rerollFailed: "Couldn't find another one. Try again?",
   restart: "Start over",

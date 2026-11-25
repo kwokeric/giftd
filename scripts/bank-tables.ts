@@ -1,5 +1,6 @@
 // Prints the question tables for "giftd — Question Bank.md" from src/lib/questions.ts.
 // Run: npx tsx scripts/bank-tables.ts
+import { ANSWER_EMOJI } from "../src/lib/emoji";
 import { BANK, OPENERS } from "../src/lib/questions";
 import type { Question } from "../src/lib/types";
 
@@ -7,7 +8,7 @@ const answers = (q: Question) =>
   q.options
     .map((o) => {
       const hidden = o.hideFor ? ` *(hidden for ${o.hideFor.join(", ")})*` : "";
-      return `\`${o.id}\` ${o.label}${o.fact ? ` *(${o.fact})*` : ""}${hidden}`;
+      return `\`${o.id}\` ${ANSWER_EMOJI[q.id]?.[o.id] ? ANSWER_EMOJI[q.id][o.id] + " " : ""}${o.label}${o.fact ? ` *(${o.fact})*` : ""}${hidden}`;
     })
     .join(" · ");
 

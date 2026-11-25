@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 
 // The quiz's two loaders: status lines while the gifts are picked (~3–5s), and a glow ring
-// over a card while "Not it" finds a replacement.
+// over a card while "Try another" finds a replacement.
 
 const PHRASES = [
   "Going over your answers",
