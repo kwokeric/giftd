@@ -10,7 +10,7 @@ import { MAX_ANSWERS, nextPlanned, planSequence } from "@/lib/plan-walk";
 import { OCCASIONS } from "@/lib/types";
 import type { Answer, Occasion, PublicQuestion, Relationship } from "@/lib/types";
 import { PhraseLoader } from "./loaders";
-import { ArrowIcon, BackIcon, ChatIcon, CheckIcon, GiftCard, GiftIcon, GiftTiles, Header, Pill, SCREEN, ShareIcon } from "./ui";
+import { ArrowIcon, BackIcon, CheckIcon, GiftCard, GiftTiles, Header, Pill, RetryIcon, SCREEN, ShareIcon } from "./ui";
 
 type View =
   | { kind: "landing" }
@@ -78,7 +78,7 @@ async function shareLink(url: string, text: string): Promise<"shared" | "copied"
 
 const STORAGE_KEY = "giftd:quiz";
 
-/** The buttons at the end of the results all look alike. */
+/** The big button at the end of the results. */
 const endButton =
   "glass flex min-h-13 w-full items-center justify-center gap-2 rounded-[20px] px-4 text-[15px] font-extrabold disabled:opacity-60";
 
@@ -409,11 +409,6 @@ function QuizFlow({ openers, saved }: { openers: PublicQuestion[]; saved: Saved 
     if (outcome === "failed") setShareStatus("error");
   }
 
-  async function askHelp() {
-    const outcome = await shareLink(`${window.location.origin}/?occasion=${occasion}&help=1`, copy.askHelpText);
-    if (outcome === "copied") flash(copy.askHelpCopied);
-  }
-
   async function shareApp() {
     const outcome = await shareLink(`${window.location.origin}/`, copy.shareAppText);
     if (outcome === "copied") flash(copy.shareAppCopied);
@@ -560,12 +555,20 @@ function QuizFlow({ openers, saved }: { openers: PublicQuestion[]; saved: Saved 
         <section className="screen-in flex flex-1 flex-col">
           <Header
             right={
-              <button onClick={restart} className="glass rounded-full px-3.5 py-2 text-sm font-semibold">
-                {copy.restart}
-              </button>
+              <div className="flex items-center gap-2">
+                {/* The app itself, no picks attached: for friends who are just as stuck. */}
+                <button onClick={() => void shareApp()} className="glass flex items-center gap-1.5 rounded-full px-3.5 py-2 text-sm font-semibold">
+                  <ShareIcon />
+                  {copy.shareApp}
+                </button>
+                <button onClick={restart} className="glass flex items-center gap-1.5 rounded-full px-3.5 py-2 text-sm font-semibold">
+                  <RetryIcon />
+                  {copy.restart}
+                </button>
+              </div>
             }
           />
-          <h1 className="mt-6 mb-[18px] text-[30px] leading-[1.06] font-extrabold tracking-[-0.035em]">
+          <h1 className="mt-5 mb-3.5 text-[26px] leading-[1.1] font-extrabold tracking-[-0.035em]">
             {copy.resultTitle}
           </h1>
           <GiftTiles>
@@ -587,8 +590,7 @@ function QuizFlow({ openers, saved }: { openers: PublicQuestion[]; saved: Saved 
               />
             ))}
           </GiftTiles>
-          {/* Three ways to pass it on, styled alike: the picks, the quiz for this person, the app itself. */}
-          <div className="mt-5 flex flex-col gap-2.5">
+          <div className="mt-4">
             <button
               onClick={() => void shareResult()}
               disabled={shareStatus === "busy" || view.rerolling !== null}
@@ -596,14 +598,6 @@ function QuizFlow({ openers, saved }: { openers: PublicQuestion[]; saved: Saved 
             >
               <ShareIcon />
               {shareStatus === "busy" ? copy.sharing : copy.share}
-            </button>
-            <button onClick={() => void askHelp()} className={endButton}>
-              <ChatIcon />
-              {copy.askHelp}
-            </button>
-            <button onClick={() => void shareApp()} className={endButton}>
-              <GiftIcon />
-              {copy.shareApp}
             </button>
           </div>
           <p aria-live="polite" className="mt-2 h-5 text-center text-sm font-semibold text-kicker">

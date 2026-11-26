@@ -109,7 +109,7 @@ export function GiftCard({
   return (
     <article
       aria-busy={busy}
-      className={`fade-in relative isolate overflow-hidden rounded-[22px] border border-[var(--glass-border)] text-white ${big ? "h-72" : "h-64"}`}
+      className={`fade-in relative isolate overflow-hidden rounded-[22px] border border-[var(--glass-border)] text-white ${big ? "h-58" : "h-56"}`}
       style={{ background: photo?.color ?? KIND_TINT[gift.kind] }}
     >
       <div className={`absolute inset-0 -z-10 transition-[opacity,filter] duration-300 ${busy ? "opacity-40 blur-[3px]" : ""}`}>
@@ -120,7 +120,7 @@ export function GiftCard({
         ) : (
           <div
             aria-hidden="true"
-            className={`flex size-full justify-center ${big ? "pt-9 text-[84px]" : "pt-8 text-[56px]"}`}
+            className={`flex size-full justify-center ${big ? "pt-7 text-[72px]" : "pt-4 text-[40px]"}`}
             style={{ background: KIND_TINT[gift.kind] }}
           >
             <span className="drop-shadow-[0_6px_10px_rgba(0,0,0,.25)]">{CATEGORY_EMOJI[gift.category]}</span>
@@ -199,7 +199,7 @@ function ExternalIcon() {
   );
 }
 
-function RetryIcon() {
+export function RetryIcon() {
   return (
     <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
       <path d="M20 12a8 8 0 1 1-2.34-5.66" />
@@ -232,22 +232,6 @@ export function ShareIcon() {
   );
 }
 
-export function ChatIcon() {
-  return (
-    <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
-      <path d="M21 12a8 8 0 0 1-11.6 7.14L4 20l1.1-4.4A8 8 0 1 1 21 12z" />
-    </svg>
-  );
-}
-
-export function GiftIcon() {
-  return (
-    <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
-      <path d="M4 11h16v9a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-9zM3 7h18v4H3zM12 7v14M12 7S10.5 3 8 3.5 7 7 12 7zM12 7s1.5-4 4-3.5S17 7 12 7z" />
-    </svg>
-  );
-}
-
 export function BackIcon() {
   return (
     <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -265,4 +249,4 @@ export function BackIcon() {
  * bottom never start under the toolbar. The bottom padding also clears the home indicator.
  */
 export const SCREEN =
-  "relative z-10 mx-auto flex min-h-svh w-full max-w-md flex-col px-6 pt-7 pb-[max(2rem,calc(env(safe-area-inset-bottom)+1rem))] md:my-auto md:min-h-[min(100dvh,780px)] md:py-10";
+  "relative z-10 mx-auto flex min-h-svh w-full max-w-md flex-col px-6 pt-4 pb-[max(2rem,calc(env(safe-area-inset-bottom)+1rem))] md:my-auto md:min-h-[min(100dvh,780px)] md:py-10";

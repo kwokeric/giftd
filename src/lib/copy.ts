@@ -27,9 +27,6 @@ export const copy = {
   shareCopied: "Link copied",
   shareFailed: "Couldn't make a link. Try again?",
   shareText: "Gift ideas from giftd",
-  askHelp: "Ask someone who knows them better",
-  askHelpText: "Help me pick a gift? It's a few taps about them.",
-  askHelpCopied: "Quiz link copied",
   // Sharing the app itself, no results attached
   shareApp: "Share giftd",
   shareAppText: "Bad at gifting? This finds the gift in a few taps.",
