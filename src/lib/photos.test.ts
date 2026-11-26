@@ -3,58 +3,60 @@ import { findPhoto } from "./photos";
 import { Gift } from "./schemas";
 import { signGift, verifyGift } from "./sign";
 
-const pexels = (photos: unknown[]) =>
-  vi.fn(async () => new Response(JSON.stringify({ photos }), { status: 200 })) as unknown as typeof fetch;
+const unsplash = (results: unknown[]) =>
+  vi.fn(async () => new Response(JSON.stringify({ results }), { status: 200 })) as unknown as typeof fetch;
 
 const PHOTO = {
-  alt: "Coffee being poured",
-  avg_color: "#8A6B4F",
-  photographer: "Sam Lee",
-  photographer_url: "https://www.pexels.com/@samlee",
-  src: { large2x: "https://images.pexels.com/photos/1/pexels-photo-1.jpeg?auto=compress&w=940" },
+  alt_description: "coffee being poured",
+  color: "#8a6b4f",
+  urls: { regular: "https://images.unsplash.com/photo-1?ixid=abc&w=1080&q=80" },
+  user: { name: "Sam Lee", links: { html: "https://unsplash.com/@samlee" } },
+  links: { download_location: "https://api.unsplash.com/photos/1/download?ixid=abc" },
 };
 
 afterEach(() => vi.unstubAllEnvs());
 
 describe("gift photos", () => {
-  it("finds a Pexels photo and caches it", async () => {
-    vi.stubEnv("PEXELS_API_KEY", "test-key");
-    const fetch = pexels([PHOTO]);
+  it("finds an Unsplash photo, reports its use once and caches it", async () => {
+    vi.stubEnv("UNSPLASH_ACCESS_KEY", "test-key");
+    const fetch = unsplash([PHOTO]);
     const photo = await findPhoto("Pour Over Coffee", fetch);
     expect(photo).toEqual({
-      src: PHOTO.src.large2x,
-      alt: PHOTO.alt,
-      color: PHOTO.avg_color,
+      src: PHOTO.urls.regular,
+      alt: PHOTO.alt_description,
+      color: PHOTO.color,
       by: "Sam Lee",
-      byUrl: PHOTO.photographer_url,
+      byUrl: "https://unsplash.com/@samlee?utm_source=giftd&utm_medium=referral",
     });
     expect(await findPhoto("pour over coffee", fetch)).toEqual(photo);
-    expect(fetch).toHaveBeenCalledTimes(1);
+    const calls = vi.mocked(fetch).mock.calls.map(([url]) => String(url));
+    expect(calls).toHaveLength(2); // one search, one download report; the repeat came from the cache
+    expect(calls[1]).toBe(PHOTO.links.download_location);
   });
 
   it("gives no photo without a key, or when nothing usable comes back", async () => {
-    expect(await findPhoto("hot sauce", pexels([PHOTO]))).toBeNull();
-    vi.stubEnv("PEXELS_API_KEY", "test-key");
-    expect(await findPhoto("nothing matches", pexels([]))).toBeNull();
-    const elsewhere = { ...PHOTO, src: { large2x: "https://example.com/x.jpg" } };
-    expect(await findPhoto("wrong host", pexels([elsewhere]))).toBeNull();
+    expect(await findPhoto("hot sauce", unsplash([PHOTO]))).toBeNull();
+    vi.stubEnv("UNSPLASH_ACCESS_KEY", "test-key");
+    expect(await findPhoto("nothing matches", unsplash([]))).toBeNull();
+    const elsewhere = { ...PHOTO, urls: { regular: "https://example.com/x.jpg" } };
+    expect(await findPhoto("wrong host", unsplash([elsewhere]))).toBeNull();
   });
 
-  it("only accepts Pexels images on a gift, and signs the photo with it", () => {
+  it("only accepts Unsplash images on a gift, and signs the photo with it", () => {
     const gift = {
       kind: "safe",
       name: "Pour-over coffee kit",
       priceRange: "$40–60",
       category: "coffee_tea",
       searchQuery: "pour over coffee kit",
-      photo: { src: PHOTO.src.large2x, alt: "", by: "Sam Lee", byUrl: PHOTO.photographer_url },
+      photo: { src: PHOTO.urls.regular, alt: "", by: "Sam Lee", byUrl: "https://unsplash.com/@samlee" },
     } as const;
     expect(Gift.safeParse(gift).success).toBe(true);
     expect(Gift.safeParse({ ...gift, photo: { ...gift.photo, src: "https://example.com/x.jpg" } }).success).toBe(false);
 
     const sig = signGift(gift)!;
     expect(verifyGift(gift, sig)).toBe(true);
-    const swapped = { ...gift, photo: { ...gift.photo, src: "https://images.pexels.com/photos/2/other.jpeg" } };
+    const swapped = { ...gift, photo: { ...gift.photo, src: "https://images.unsplash.com/photo-2" } };
     expect(verifyGift(swapped, sig)).toBe(false);
   });
 });

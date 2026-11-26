@@ -57,15 +57,15 @@ export const ModelGift = z.object({
 });
 
 /**
- * A stock photo for a gift (from Pexels, see photos.ts). Only Pexels URLs are allowed, so a
+ * A stock photo for a gift (from Unsplash, see photos.ts). Only Unsplash URLs are allowed, so a
  * share link can't point the page at someone else's image.
  */
 export const GiftPhoto = z.object({
-  src: z.string().max(300).startsWith("https://images.pexels.com/"),
+  src: z.string().max(400).startsWith("https://images.unsplash.com/"),
   alt: z.string().max(200),
   color: z.string().regex(/^#[0-9a-fA-F]{6}$/).optional(),
   by: z.string().max(80),
-  byUrl: z.string().max(200).startsWith("https://www.pexels.com/"),
+  byUrl: z.string().max(200).startsWith("https://unsplash.com/"),
 });
 export type GiftPhoto = z.infer<typeof GiftPhoto>;
 

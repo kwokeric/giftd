@@ -33,6 +33,8 @@ export function Pill({ children }: { children: ReactNode }) {
   return <span className="glass rounded-full px-3.5 py-2 min-w-[5.75rem] text-center text-sm font-semibold tabular-nums">{children}</span>;
 }
 
+const UNSPLASH_URL = "https://unsplash.com/?utm_source=giftd&utm_medium=referral";
+
 /** Shown when a gift has no photo: an emoji for its category on the kind's color. */
 const CATEGORY_EMOJI: Record<GiftCategory, string> = {
   kitchen_cooking: "🍳",
@@ -112,7 +114,7 @@ export function GiftCard({
     >
       <div className={`absolute inset-0 -z-10 transition-[opacity,filter] duration-300 ${busy ? "opacity-40 blur-[3px]" : ""}`}>
         {photo ? (
-          // Pexels already serves sized, compressed images, so there's nothing for next/image to add.
+          // Unsplash already serves sized, compressed images (and asks to be hotlinked), so next/image adds nothing.
           // eslint-disable-next-line @next/next/no-img-element
           <img src={photo.src} alt={photo.alt} className="size-full object-cover" />
         ) : (
@@ -126,14 +128,16 @@ export function GiftCard({
         )}
       </div>
       {photo && (
-        <a
-          href={photo.byUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="absolute top-2 right-2.5 max-w-[75%] truncate rounded-full bg-black/30 px-2 py-0.5 text-[10px] font-semibold text-white/85"
-        >
-          {photo.by} · Pexels
-        </a>
+        // Unsplash asks for the photographer and Unsplash to be credited, each with a link.
+        <p className="absolute top-2 right-2.5 max-w-[75%] truncate rounded-full bg-black/30 px-2 py-0.5 text-[10px] font-semibold text-white/85">
+          <a href={photo.byUrl} target="_blank" rel="noopener noreferrer">
+            {photo.by}
+          </a>
+          {" · "}
+          <a href={UNSPLASH_URL} target="_blank" rel="noopener noreferrer">
+            Unsplash
+          </a>
+        </p>
       )}
       {busy && (
         <div className="fade-in pointer-events-none absolute inset-0 z-10 flex items-center justify-center">
