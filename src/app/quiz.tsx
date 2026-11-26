@@ -401,7 +401,8 @@ function QuizFlow({ openers, saved }: { openers: PublicQuestion[]; saved: Saved 
       }
       setShareStatus("idle");
       const newId = id;
-      setView((v) => (v.kind === "result" && v.resultId === current.resultId ? { ...v, shareId: newId } : v));
+      // Remember the link only if no pick was swapped while it was being made.
+      setView((v) => (v.kind === "result" && v.gifts === current.gifts ? { ...v, shareId: newId } : v));
     }
     const outcome = await shareLink(`${window.location.origin}/r/${id}`, copy.shareText);
     if (outcome === "copied") flash(copy.shareCopied);
@@ -575,7 +576,7 @@ function QuizFlow({ openers, saved }: { openers: PublicQuestion[]; saved: Saved 
                 big={i === 0}
                 busy={view.rerolling === g.kind}
                 onNotIt={() => void notIt(g.kind)}
-                notItDisabled={view.rerolling !== null || shareStatus === "busy"}
+                notItDisabled={view.rerolling !== null}
                 error={
                   view.rerollError === g.kind && (
                     <p role="alert" className="mb-2 text-xs font-semibold text-[#ffc4e1]">
