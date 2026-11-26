@@ -489,13 +489,14 @@ function QuizFlow({ openers, saved }: { openers: PublicQuestion[]; saved: Saved 
             }
             right={<Pill>{copy.progress(shownIndex(view.index), totalShown)}</Pill>}
           />
+          <Progress index={shownIndex(view.index)} total={totalShown} />
           <h1
-            className={`${view.busy ? "question-leave" : "question-enter"} ${compact ? "mt-10 text-[32px]" : "mt-28 text-[38px]"} leading-[1.08] font-extrabold tracking-[-0.035em]`}
+            className={`${view.busy ? "question-leave" : "question-enter"} mt-8 ${compact ? "text-[32px]" : "text-[38px]"} leading-[1.08] font-extrabold tracking-[-0.035em]`}
             style={view.busy ? ({ "--leave": `${view.then?.afterMs ?? leaveDuration(options.length - 1)}ms` } as CSSProperties) : undefined}
           >
             {view.question.text}
           </h1>
-          <div className={`mt-auto flex flex-col pt-8 ${compact ? "gap-2" : "gap-3"}`}>
+          <div className={`mt-auto flex flex-col pt-6 ${compact ? "gap-2" : "gap-3"}`}>
             {options.map((o, i) => {
               const on = view.pickedId === o.id;
               // After a pick, the other answers leave one after another, top to bottom.
@@ -534,7 +535,6 @@ function QuizFlow({ openers, saved }: { openers: PublicQuestion[]; saved: Saved 
               );
             })}
           </div>
-          <Progress index={shownIndex(view.index)} total={totalShown} />
           {/* No visible loading text: the leaving answers are the loading state. */}
           <p aria-live="polite" className="sr-only">
             {view.busy ? copy.thinking : ""}
@@ -671,7 +671,7 @@ function Progress({ index, total }: { index: number; total: number }) {
       aria-valuemin={0}
       aria-valuemax={total}
       aria-valuenow={index}
-      className="mt-[22px] h-1 overflow-hidden rounded-full bg-track"
+      className="mt-5 h-1 overflow-hidden rounded-full bg-track"
     >
       <div className="h-full rounded-full bg-bar transition-[width] duration-300" style={{ width: `${(index / total) * 100}%` }} />
     </div>

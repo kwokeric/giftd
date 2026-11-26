@@ -255,6 +255,9 @@ export function BackIcon() {
  * The app column. On phones it fills the screen so the main button sits at thumb height.
  * On larger screens it's capped at a phone-like height and centered, so bottom buttons
  * stay close to the content instead of drifting to the bottom of a tall window.
+ *
+ * Phones use svh, not dvh: the height with the browser bars showing, so the answers at the
+ * bottom never start under the toolbar. The bottom padding also clears the home indicator.
  */
 export const SCREEN =
-  "relative z-10 mx-auto flex min-h-dvh w-full max-w-md flex-col px-6 pt-7 pb-8 md:my-auto md:min-h-[min(100dvh,780px)] md:py-10";
+  "relative z-10 mx-auto flex min-h-svh w-full max-w-md flex-col px-6 pt-7 pb-[max(2rem,calc(env(safe-area-inset-bottom)+1rem))] md:my-auto md:min-h-[min(100dvh,780px)] md:py-10";

@@ -24,6 +24,8 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
+  // Lets env(safe-area-inset-*) report the home indicator, so SCREEN can pad around it.
+  viewportFit: "cover",
   themeColor: [
     { media: "(prefers-color-scheme: light)", color: "#f5f2ff" },
     { media: "(prefers-color-scheme: dark)", color: "#120e24" },
