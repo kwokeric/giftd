@@ -270,7 +270,7 @@ Four phases. Each phase ends with something you can play.
 
 **Phase 4 — Harden and launch**
 
-- [ ] Rate limiting per IP with Upstash: 60 `/api/turn` calls per hour (≈ 6–7 full quizzes with re-rolls) and 10 shares per hour
+- [x] Rate limiting per IP with Redis: 60 `/api/turn` calls per hour (≈ 6–7 full quizzes with re-rolls) and 10 shares per hour. IPs are stored hashed; if Redis is down, requests go through; off in `next dev`
 - [ ] Analytics events: `quiz_start` (with occasion), `question_answered` (with `questionId`, `optionId`, index), `quiz_complete`, `reroll`, `shop_click`, `share`, with the gift fields listed in Gift sourcing. Per-question drop-off (users who quit on that question) and shop-click rates are how you'll prune and improve the bank; per-pick clicks feed the proven-picks list later.
 - [ ] Apply for Amazon Associates; add affiliate disclosure and a privacy note
 - [ ] Upgrade Vercel to Pro once affiliate links go live

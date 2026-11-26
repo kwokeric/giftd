@@ -1,16 +1,16 @@
 import { validateAnswers } from "@/lib/eligibility";
 import { Gift, ShareRequest } from "@/lib/schemas";
+import { overLimit, tooMany } from "@/lib/rate-limit";
 import { saveShare, sharingAvailable } from "@/lib/shares";
 import { signingEnabled, verifyGift } from "@/lib/sign";
 import { RELATIONSHIPS } from "@/lib/types";
 import type { Relationship } from "@/lib/types";
 
-// TODO (Phase 4): per-IP rate limit (10 shares per hour) with Upstash.
-
 export async function POST(request: Request) {
   if (!sharingAvailable() || !signingEnabled()) {
     return Response.json({ error: "Sharing isn't set up yet" }, { status: 503 });
   }
+  if (await overLimit("share", request.headers)) return tooMany("share");
 
   let body: unknown;
   try {
