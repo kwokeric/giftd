@@ -129,7 +129,8 @@ export function GiftCard({
       </div>
       {photo && (
         // Unsplash asks for the photographer and Unsplash to be credited, each with a link.
-        <p className="absolute top-2 right-2.5 max-w-[75%] truncate rounded-full bg-black/30 px-2 py-0.5 text-[10px] font-semibold text-white/85">
+        // Kept as quiet as possible: tiny, faint, with a soft shadow so it still reads on white photos.
+        <p className="absolute top-1.5 right-2.5 max-w-[75%] truncate text-[8px] leading-none font-medium text-white/60 [text-shadow:0_0_3px_rgba(0,0,0,0.45)]">
           <a href={photo.byUrl} target="_blank" rel="noopener noreferrer">
             {photo.by}
           </a>
